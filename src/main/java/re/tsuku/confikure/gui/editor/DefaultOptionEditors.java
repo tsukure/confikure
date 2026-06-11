@@ -2,7 +2,6 @@ package re.tsuku.confikure.gui.editor;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import re.tsuku.confikure.model.EditorType;
 
 public final class DefaultOptionEditors {

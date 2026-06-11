@@ -1,5 +1,7 @@
 target/
 out/
+build/
+.gradle/
 
 *.class
 *.jar
@@ -9,6 +11,7 @@ out/
 *.tar.gz
 
 .idea/
+.vscode/
 *.iml
 
 hs_err_pid*

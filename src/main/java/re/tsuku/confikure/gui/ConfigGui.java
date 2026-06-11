@@ -3,7 +3,6 @@ package re.tsuku.confikure.gui;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
 import re.tsuku.confikure.gui.editor.EditorContext;
 import re.tsuku.confikure.gui.editor.OptionEditor;

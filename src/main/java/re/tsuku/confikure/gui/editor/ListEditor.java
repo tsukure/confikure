@@ -3,7 +3,6 @@ package re.tsuku.confikure.gui.editor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
 import re.tsuku.confikure.gui.platform.GuiRenderer;

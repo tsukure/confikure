@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import re.tsuku.confikure.annotations.Button;
 import re.tsuku.confikure.annotations.Category;
 import re.tsuku.confikure.annotations.Color;

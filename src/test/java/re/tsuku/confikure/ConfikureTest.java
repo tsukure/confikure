@@ -7,11 +7,9 @@ import static org.junit.Assert.assertTrue;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 import re.tsuku.confikure.annotations.Button;
 import re.tsuku.confikure.annotations.Category;
 import re.tsuku.confikure.annotations.Color;
@@ -24,11 +22,11 @@ import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
+import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigGroup;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.EditorType;
-import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.persistence.ConfigStore;
 
 public final class ConfikureTest {
