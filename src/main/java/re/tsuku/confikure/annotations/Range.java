@@ -5,14 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Config {
-    String name();
+public @interface Range {
+    double min() default Double.NEGATIVE_INFINITY;
 
-    String id() default "";
+    double max() default Double.POSITIVE_INFINITY;
 
-    String description() default "";
-
-    int version() default 1;
+    double step() default 0.0D;
 }

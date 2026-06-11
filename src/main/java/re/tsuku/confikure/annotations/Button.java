@@ -5,14 +5,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Config {
+public @interface Button {
     String name();
 
     String id() default "";
 
     String description() default "";
 
-    int version() default 1;
+    String group() default "";
+
+    int order() default 0;
 }

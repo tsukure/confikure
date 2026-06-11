@@ -5,14 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Config {
-    String name();
-
-    String id() default "";
-
-    String description() default "";
-
-    int version() default 1;
+public @interface Dropdown {
+    String[] values() default {};
 }

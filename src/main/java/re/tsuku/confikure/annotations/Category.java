@@ -10,5 +10,9 @@ import java.lang.annotation.Target;
 public @interface Category {
     String name();
 
+    String id() default "";
+
     String description() default "";
+
+    int order() default 0;
 }

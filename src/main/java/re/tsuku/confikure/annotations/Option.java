@@ -7,12 +7,18 @@ import java.lang.annotation.Target;
 
 import re.tsuku.confikure.model.EditorType;
 
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Option {
     String name();
 
+    String id() default "";
+
     String description() default "";
+
+    String group() default "";
+
+    int order() default 0;
 
     EditorType type() default EditorType.AUTO;
 }
