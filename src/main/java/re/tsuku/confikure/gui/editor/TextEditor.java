@@ -13,25 +13,23 @@ final class TextEditor implements OptionEditor {
     }
 
     public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
-            boolean hovered) {
-        int x = bounds.x + bounds.width - 104;
-        int height = multiline ? 34 : 16;
-        EditorDraw.frame(renderer, x, bounds.y + 4, 100, height, theme, hovered);
+            EditorContext context) {
+        int width = 142;
+        int x = bounds.x + bounds.width - width - 6;
+        int height = multiline ? 42 : 18;
+        int y = bounds.y + (multiline ? 8 : (bounds.height - height) / 2);
         String text = String.valueOf(option.get());
-        renderer.text(clip(text, renderer, 92), x + 4, bounds.y + 8, theme.text);
+        String line = firstLine(text);
+        int cursor = Math.max(0, Math.min(context.textCursor(option), text.length()));
+        EditorDraw.textField(renderer, theme, x, y, width, height, line, cursor, context.textSelectionStart(option),
+                context.textSelectionEnd(option), context.hovered(option), context.focused(option));
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {
     }
 
-    private static String clip(String text, GuiRenderer renderer, int width) {
-        if (renderer.textWidth(text) <= width) {
-            return text;
-        }
-        String value = text;
-        while (value.length() > 0 && renderer.textWidth(value + "...") > width) {
-            value = value.substring(0, value.length() - 1);
-        }
-        return value + "...";
+    private static String firstLine(String text) {
+        int index = text.indexOf('\n');
+        return index < 0 ? text : text.substring(0, index);
     }
 }

@@ -7,8 +7,12 @@ import re.tsuku.confikure.model.ConfigOption;
 
 final class InfoEditor implements OptionEditor {
     public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
-            boolean hovered) {
-        renderer.text(String.valueOf(option.get()), bounds.x + bounds.width - 120, bounds.y + 8, theme.mutedText);
+            EditorContext context) {
+        int width = 120;
+        int x = bounds.x + bounds.width - width - 6;
+        renderer.fill(x, bounds.y + 7, x + width, bounds.y + 25, theme.panelSunken);
+        renderer.text(EditorDraw.clip(String.valueOf(option.get()), renderer, width - 10), x + 5, bounds.y + 12,
+                theme.mutedText);
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

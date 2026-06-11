@@ -7,10 +7,11 @@ import re.tsuku.confikure.model.ConfigOption;
 
 final class ButtonEditor implements OptionEditor {
     public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
-            boolean hovered) {
-        int x = bounds.x + bounds.width - 68;
-        EditorDraw.frame(renderer, x, bounds.y + 4, 64, 16, theme, hovered);
-        renderer.centeredText("run", x, bounds.y + 8, 64, theme.text);
+            EditorContext context) {
+        int x = bounds.x + bounds.width - 70;
+        int y = bounds.y + (bounds.height - 18) / 2;
+        EditorDraw.frame(renderer, x, y, 64, 18, theme, context.hovered(option), context.active(option));
+        renderer.centeredText("run", x, y + 5, 64, theme.text);
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

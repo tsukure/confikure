@@ -20,6 +20,8 @@ public final class ConfigOption {
     private final NumberRange range;
     private final List<String> choices;
     private final List<String> searchTags;
+    private final boolean keybindClearable;
+    private final boolean keybindResetOnClear;
     private final List<OptionListener> listeners = new ArrayList<>();
     private OptionCondition visibleWhen = always();
     private OptionCondition enabledWhen = always();
@@ -27,6 +29,13 @@ public final class ConfigOption {
     public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
             OptionAccess access, Object defaultValue, NumberRange range, List<String> choices,
             List<String> searchTags) {
+        this(id, name, description, groupId, order, type, access, defaultValue, range, choices, searchTags, true,
+                false);
+    }
+
+    public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
+            OptionAccess access, Object defaultValue, NumberRange range, List<String> choices, List<String> searchTags,
+            boolean keybindClearable, boolean keybindResetOnClear) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -38,6 +47,8 @@ public final class ConfigOption {
         this.range = range;
         this.choices = choices == null ? Collections.<String>emptyList() : choices;
         this.searchTags = searchTags == null ? Collections.<String>emptyList() : searchTags;
+        this.keybindClearable = keybindClearable;
+        this.keybindResetOnClear = keybindResetOnClear;
     }
 
     public String id() {
@@ -82,6 +93,14 @@ public final class ConfigOption {
 
     public List<String> searchTags() {
         return searchTags;
+    }
+
+    public boolean keybindClearable() {
+        return keybindClearable;
+    }
+
+    public boolean keybindResetOnClear() {
+        return keybindResetOnClear;
     }
 
     public Object get() {
@@ -140,7 +159,8 @@ public final class ConfigOption {
     }
 
     public String validate(Object value) {
-        if (type == EditorType.DROPDOWN && !choices.isEmpty() && !choices.contains(String.valueOf(value))) {
+        if ((type == EditorType.DROPDOWN || type == EditorType.MODE) && !choices.isEmpty()
+                && !choices.contains(String.valueOf(value))) {
             return "must be one of " + choices;
         }
         if (range != null && value instanceof Number) {
@@ -163,7 +183,7 @@ public final class ConfigOption {
         if (range != null && value instanceof Number) {
             return coerceNumber((Number) value);
         }
-        if (type == EditorType.DROPDOWN && !choices.isEmpty()) {
+        if ((type == EditorType.DROPDOWN || type == EditorType.MODE) && !choices.isEmpty()) {
             String next = String.valueOf(value);
             if (!choices.contains(next)) {
                 throw new IllegalArgumentException("invalid value for " + id + ": " + next);

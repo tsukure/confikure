@@ -20,6 +20,7 @@ import re.tsuku.confikure.annotations.Dropdown;
 import re.tsuku.confikure.annotations.Group;
 import re.tsuku.confikure.annotations.Info;
 import re.tsuku.confikure.annotations.Keybind;
+import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
@@ -27,6 +28,7 @@ import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigGroup;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.EditorType;
+import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.persistence.ConfigStore;
 
 public final class ConfikureTest {
@@ -56,10 +58,23 @@ public final class ConfikureTest {
         List<ConfigOption> options = definition.categories().get(1).options();
 
         assertEquals(EditorType.KEYBIND, find(options, "open-gui").type());
+        assertTrue(find(options, "open-gui").keybindClearable());
+        assertFalse(find(options, "open-gui").keybindResetOnClear());
         assertEquals(EditorType.DROPDOWN, find(options, "mode").type());
+        assertEquals(EditorType.MODE, find(options, "cycle-mode").type());
         assertEquals(EditorType.MULTILINE_TEXT, find(options, "notes").type());
         assertEquals(EditorType.INFO, find(options, "about").type());
         assertEquals(EditorType.DRAGGABLE_LIST, find(options, "order").type());
+    }
+
+    @Test
+    public void scansKeybindClearPolicies() {
+        ConfigDefinition definition = Confikure.scan(new KeybindPolicyConfig());
+        List<ConfigOption> options = definition.categories().get(0).options();
+
+        assertFalse(find(options, "locked-key").keybindClearable());
+        assertTrue(find(options, "reset-key").keybindClearable());
+        assertTrue(find(options, "reset-key").keybindResetOnClear());
     }
 
     @Test
@@ -140,6 +155,122 @@ public final class ConfikureTest {
         assertEquals(Arrays.asList("two", "one"), loaded.visuals.order);
     }
 
+    @Test
+    public void guiCanEditInteractiveTypes() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 690, 285);
+        gui.keyTyped('!', 0);
+        assertEquals("line one!", config.visuals.notes);
+
+        gui.click(800, 600, 640, 157);
+        gui.keyTyped('\0', 35);
+        assertEquals(35, config.visuals.openGui);
+
+        gui.click(800, 600, 690, 381);
+        assertEquals(Arrays.asList("two", "one"), config.visuals.order);
+
+        gui.click(800, 600, 670, 490);
+        gui.click(800, 600, 600, 474);
+        gui.keyTyped('\0', 30, false, true);
+        for (char character : "112233".toCharArray()) {
+            gui.keyTyped(character, 0);
+        }
+        assertEquals(0xFF112233, config.visuals.primaryColor);
+    }
+
+    @Test
+    public void guiSeparatesDropdownsFromModeCycling() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 690, 193);
+        assertEquals("simple", config.visuals.mode);
+        gui.click(800, 600, 690, 230);
+        assertEquals("fancy", config.visuals.mode);
+
+        assertEquals("one", config.visuals.cycleMode);
+        gui.click(800, 600, 690, 239);
+        assertEquals("two", config.visuals.cycleMode);
+        gui.click(800, 600, 690, 239);
+        assertEquals("one", config.visuals.cycleMode);
+        gui.click(800, 600, 560, 239);
+        assertEquals("two", config.visuals.cycleMode);
+    }
+
+    @Test
+    public void guiOnlyInteractsWithComponents() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 300, 193);
+        assertEquals("simple", config.visuals.mode);
+
+        gui.click(800, 600, 690, 193);
+        gui.click(800, 600, 690, 230);
+        assertEquals("fancy", config.visuals.mode);
+    }
+
+    @Test
+    public void guiDragsSlidersAndEditsTextSelection() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(0);
+        gui.click(800, 600, 584, 193);
+        gui.drag(800, 600, 694, 193);
+        gui.release();
+        assertEquals(2.0D, config.movement.speed, 0.0D);
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 690, 285);
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('x', 0);
+        assertEquals("x", config.visuals.notes);
+
+        gui.selectedCategory(0);
+        gui.click(800, 600, 690, 193);
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('1', 0);
+        gui.keyTyped('.', 0);
+        gui.keyTyped('5', 0);
+        assertEquals(1.5D, config.movement.speed, 0.0D);
+    }
+
+    @Test
+    public void focusedComponentsConsumeKeyboardCommitAndCancel() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        assertFalse(gui.keyTyped('\0', 1));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 690, 285);
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('x', 0);
+        assertTrue(gui.keyTyped('\0', 28));
+        assertEquals("x", config.visuals.notes);
+        assertFalse(gui.keyTyped('\0', 1));
+
+        gui.click(800, 600, 690, 490);
+        assertTrue(gui.keyTyped('\0', 1));
+        assertFalse(gui.keyTyped('\0', 1));
+    }
+
+    @Test
+    public void keybindClearButtonClearsOrResets() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 690, 157);
+        assertEquals(0, config.visuals.openGui);
+    }
+
     private static ConfigOption find(List<ConfigOption> options, String id) {
         for (ConfigOption option : options) {
             if (option.id().equals(id)) {
@@ -175,32 +306,52 @@ public final class ConfikureTest {
     private static final class Visuals {
         private boolean reset;
 
-        @Option(name = "open gui")
+        @Option(name = "open gui", order = 0)
         @Keybind
         private int openGui = 54;
 
-        @Option(name = "mode")
+        @Option(name = "mode", order = 1)
         @Dropdown(values = {"simple", "fancy"})
         private String mode = "simple";
 
-        @Option(name = "primary color", group = "theme")
+        @Option(name = "cycle mode", order = 2)
+        @Mode(values = {"one", "two"})
+        private String cycleMode = "one";
+
+        @Option(name = "primary color", group = "theme", order = 0)
         @Color
         private int primaryColor = 0xFF78A96B;
 
-        @Option(name = "notes")
+        @Option(name = "notes", order = 3)
         @Multiline
         private String notes = "line one";
 
-        @Option(name = "about")
+        @Option(name = "about", order = 4)
         @Info
         private String about = "client settings";
 
-        @Option(name = "order")
+        @Option(name = "order", order = 5)
         private List<String> order = Arrays.asList("one", "two");
 
-        @Button(name = "reset cache")
+        @Button(name = "reset cache", order = 6)
         private void resetCache() {
             reset = true;
         }
+    }
+
+    @Config(name = "keybind policy")
+    private static final class KeybindPolicyConfig {
+        @Category(name = "general")
+        private final Keybinds keybinds = new Keybinds();
+    }
+
+    private static final class Keybinds {
+        @Option(name = "locked key")
+        @Keybind(clearable = false)
+        private int lockedKey = 34;
+
+        @Option(name = "reset key")
+        @Keybind(resetOnClear = true)
+        private int resetKey = 54;
     }
 }

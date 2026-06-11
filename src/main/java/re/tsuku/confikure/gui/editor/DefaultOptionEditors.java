@@ -16,6 +16,7 @@ public final class DefaultOptionEditors {
         editors.put(EditorType.TEXT, new TextEditor(false));
         editors.put(EditorType.MULTILINE_TEXT, new TextEditor(true));
         editors.put(EditorType.DROPDOWN, new DropdownEditor());
+        editors.put(EditorType.MODE, new ModeEditor());
         editors.put(EditorType.COLOR, new ColorEditor());
         editors.put(EditorType.KEYBIND, new KeybindEditor());
         editors.put(EditorType.BUTTON, new ButtonEditor());

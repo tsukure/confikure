@@ -7,10 +7,20 @@ import re.tsuku.confikure.model.ConfigOption;
 
 final class KeybindEditor implements OptionEditor {
     public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
-            boolean hovered) {
-        int x = bounds.x + bounds.width - 58;
-        EditorDraw.frame(renderer, x, bounds.y + 4, 54, 16, theme, hovered);
-        renderer.centeredText(String.valueOf(option.get()), x, bounds.y + 8, 54, theme.text);
+            EditorContext context) {
+        int x = bounds.x + bounds.width - 86;
+        int y = bounds.y + (bounds.height - 18) / 2;
+        EditorDraw.frame(renderer, x, y, 80, 18, theme, context.hovered(option), context.focused(option));
+        int clearX = x + 64;
+        renderer.centeredText(context.focused(option) ? "press key" : context.displayValue(option), x, y + 5,
+                option.keybindClearable() ? 62 : 80,
+                context.focused(option) ? theme.accent : theme.text);
+        if (option.keybindClearable()) {
+            boolean hovered = context.mouseX() >= clearX && context.mouseY() >= y && context.mouseX() < x + 80
+                    && context.mouseY() < y + 18;
+            renderer.fill(clearX, y + 1, x + 79, y + 17, hovered ? theme.danger : theme.panelSunken);
+            renderer.centeredText("x", clearX, y + 5, 16, hovered ? theme.text : theme.mutedText);
+        }
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

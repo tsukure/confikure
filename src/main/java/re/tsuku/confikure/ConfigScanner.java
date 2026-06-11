@@ -18,6 +18,7 @@ import re.tsuku.confikure.annotations.Dropdown;
 import re.tsuku.confikure.annotations.Group;
 import re.tsuku.confikure.annotations.Info;
 import re.tsuku.confikure.annotations.Keybind;
+import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
@@ -151,9 +152,11 @@ public final class ConfigScanner {
     private ConfigOption option(Field field, Object owner, Option option, String groupId) {
         EditorType editorType = editorType(field, option.type());
         String id = option.id().isEmpty() ? stableId(option.name()) : option.id();
+        Keybind keybind = field.getAnnotation(Keybind.class);
         return new ConfigOption(id, option.name(), option.description(), groupId, option.order(), editorType,
                 new FieldOptionAccess(field, owner), read(field, owner), range(field), choices(field),
-                searchTags(field.getAnnotation(SearchTag.class)));
+                searchTags(field.getAnnotation(SearchTag.class)), keybind == null || keybind.clearable(),
+                keybind != null && keybind.resetOnClear());
     }
 
     private ConfigOption button(Method method, Object owner, Button button) {
@@ -180,6 +183,9 @@ public final class ConfigScanner {
         if (field.getAnnotation(Multiline.class) != null) {
             return EditorType.MULTILINE_TEXT;
         }
+        if (field.getAnnotation(Mode.class) != null) {
+            return EditorType.MODE;
+        }
         if (field.getAnnotation(Dropdown.class) != null) {
             return EditorType.DROPDOWN;
         }
@@ -192,6 +198,10 @@ public final class ConfigScanner {
     }
 
     private static List<String> choices(Field field) {
+        Mode mode = field.getAnnotation(Mode.class);
+        if (mode != null && mode.values().length > 0) {
+            return Collections.unmodifiableList(Arrays.asList(mode.values()));
+        }
         Dropdown dropdown = field.getAnnotation(Dropdown.class);
         if (dropdown != null && dropdown.values().length > 0) {
             return Collections.unmodifiableList(Arrays.asList(dropdown.values()));

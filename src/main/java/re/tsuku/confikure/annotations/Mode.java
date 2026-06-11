@@ -7,8 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Keybind {
-    boolean clearable() default true;
-
-    boolean resetOnClear() default false;
+public @interface Mode {
+    String[] values() default {};
 }
