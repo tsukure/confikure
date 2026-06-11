@@ -1,0 +1,15 @@
+target/
+out/
+
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+.idea/
+*.iml
+
+hs_err_pid*
+replay_pid*
