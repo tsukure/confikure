@@ -21,6 +21,8 @@ public final class ConfigOption {
     private final List<String> choices;
     private final List<String> searchTags;
     private final List<OptionListener> listeners = new ArrayList<>();
+    private OptionCondition visibleWhen = always();
+    private OptionCondition enabledWhen = always();
 
     public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
             OptionAccess access, Object defaultValue, NumberRange range, List<String> choices,
@@ -84,6 +86,30 @@ public final class ConfigOption {
 
     public Object get() {
         return access.get();
+    }
+
+    public boolean visible() {
+        return visibleWhen.test();
+    }
+
+    public boolean enabled() {
+        return enabledWhen.test();
+    }
+
+    public ConfigOption visibleWhen(OptionCondition condition) {
+        if (condition == null) {
+            throw new NullPointerException("condition");
+        }
+        this.visibleWhen = condition;
+        return this;
+    }
+
+    public ConfigOption enabledWhen(OptionCondition condition) {
+        if (condition == null) {
+            throw new NullPointerException("condition");
+        }
+        this.enabledWhen = condition;
+        return this;
     }
 
     public void set(Object value) {
@@ -174,5 +200,13 @@ public final class ConfigOption {
         for (OptionListener listener : listeners) {
             listener.changed(this, oldValue, newValue);
         }
+    }
+
+    private static OptionCondition always() {
+        return new OptionCondition() {
+            public boolean test() {
+                return true;
+            }
+        };
     }
 }

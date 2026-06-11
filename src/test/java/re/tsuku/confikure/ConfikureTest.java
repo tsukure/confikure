@@ -4,10 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import re.tsuku.confikure.annotations.Button;
 import re.tsuku.confikure.annotations.Category;
@@ -24,8 +27,12 @@ import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigGroup;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.EditorType;
+import re.tsuku.confikure.persistence.ConfigStore;
 
 public final class ConfikureTest {
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Test
     public void scansGroupedConfig() {
         ExampleConfig config = new ExampleConfig();
@@ -83,6 +90,54 @@ public final class ConfikureTest {
 
         action.press();
         assertTrue(config.visuals.reset);
+    }
+
+    @Test
+    public void supportsDependencyPredicates() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigDefinition definition = Confikure.scan(config);
+        ConfigOption mode = find(definition.categories().get(1).options(), "mode");
+        ConfigOption notes = find(definition.categories().get(1).options(), "notes");
+
+        mode.enabledWhen(new re.tsuku.confikure.model.OptionCondition() {
+            public boolean test() {
+                return !config.visuals.notes.equals("locked");
+            }
+        });
+        notes.visibleWhen(new re.tsuku.confikure.model.OptionCondition() {
+            public boolean test() {
+                return config.visuals.primaryColor != 0;
+            }
+        });
+
+        assertTrue(mode.enabled());
+        assertTrue(notes.visible());
+
+        config.visuals.notes = "locked";
+        config.visuals.primaryColor = 0;
+
+        assertFalse(mode.enabled());
+        assertFalse(notes.visible());
+    }
+
+    @Test
+    public void persistsJsonByStableIds() throws Exception {
+        ExampleConfig config = new ExampleConfig();
+        ConfigDefinition definition = Confikure.scan(config);
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("example.json").toPath();
+
+        config.movement.speed = 1.5D;
+        config.visuals.mode = "fancy";
+        config.visuals.order = Arrays.asList("two", "one");
+        store.save(definition, path);
+
+        ExampleConfig loaded = new ExampleConfig();
+        store.load(Confikure.scan(loaded), path);
+
+        assertEquals(1.5D, loaded.movement.speed, 0.0D);
+        assertEquals("fancy", loaded.visuals.mode);
+        assertEquals(Arrays.asList("two", "one"), loaded.visuals.order);
     }
 
     private static ConfigOption find(List<ConfigOption> options, String id) {

@@ -90,8 +90,11 @@ public final class ConfigGui {
         for (ConfigGroup group : category.groups()) {
             contentY += 22;
             for (ConfigOption option : group.options()) {
+                if (!option.visible()) {
+                    continue;
+                }
                 GuiBounds row = new GuiBounds(contentX, contentY, contentWidth, rowHeight(option));
-                if (row.contains(mouseX, mouseY)) {
+                if (row.contains(mouseX, mouseY) && option.enabled()) {
                     editor(option).click(option, row, mouseX, mouseY);
                     return;
                 }
@@ -133,6 +136,9 @@ public final class ConfigGui {
             renderer.text(group.name(), contentX, y + 6, theme.text);
             y += 22;
             for (ConfigOption option : group.options()) {
+                if (!option.visible()) {
+                    continue;
+                }
                 int rowHeight = rowHeight(option);
                 GuiBounds row = new GuiBounds(contentX, y, contentWidth, rowHeight);
                 drawOption(renderer, option, row, row.contains(mouseX, mouseY));
@@ -149,9 +155,10 @@ public final class ConfigGui {
                 hovered ? theme.panelRaised : theme.panel);
         renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
                 theme.borderDark);
-        renderer.text(option.name(), bounds.x + 6, bounds.y + 6, option.type() == EditorType.INFO
-                ? theme.mutedText
-                : theme.text);
+        int nameColor = !option.enabled()
+                ? theme.disabledText
+                : option.type() == EditorType.INFO ? theme.mutedText : theme.text;
+        renderer.text(option.name(), bounds.x + 6, bounds.y + 6, nameColor);
         if (!option.description().isEmpty()) {
             renderer.text(option.description(), bounds.x + 6, bounds.y + 17, theme.mutedText);
         }

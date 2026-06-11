@@ -1,5 +1,7 @@
 package re.tsuku.confikure.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -45,5 +47,22 @@ public final class ConfigDefinition {
 
     public List<ConfigCategory> categories() {
         return categories;
+    }
+
+    public List<ConfigOption> options() {
+        List<ConfigOption> options = new ArrayList<>();
+        for (ConfigCategory category : categories) {
+            options.addAll(category.options());
+        }
+        return Collections.unmodifiableList(options);
+    }
+
+    public ConfigOption option(String id) {
+        for (ConfigOption option : options()) {
+            if (option.id().equals(id)) {
+                return option;
+            }
+        }
+        return null;
     }
 }
