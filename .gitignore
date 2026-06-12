@@ -1,10 +1,12 @@
 target/
 out/
 build/
+run/
 .gradle/
 
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 *.zip
@@ -13,6 +15,10 @@ build/
 .idea/
 .vscode/
 *.iml
+
+*.log
+logs/
+crash-reports/
 
 hs_err_pid*
 replay_pid*

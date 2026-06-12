@@ -16,8 +16,6 @@ plugins {
 group = "re.tsuku"
 version = releaseVersion()
 
-val fastjson2Version = "2.0.62"
-
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -62,7 +60,7 @@ dependencies {
     mappings("de.oceanlabs.mcp:mcp_stable:22-1.8.9")
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
 
-    shade("com.alibaba.fastjson2:fastjson2:$fastjson2Version")
+    shade("com.alibaba.fastjson2:fastjson2:2.0.62")
 
     testImplementation("junit:junit:4.13.2")
 }
@@ -98,12 +96,29 @@ tasks {
         input.set(shadowJar.get().archiveFile)
     }
 
+    val releaseSourcesJar = register("releaseSourcesJar") {
+        val input = layout.buildDirectory.file("libs/confikure-${project.version}-sources-dev.jar")
+        val output = layout.buildDirectory.file("libs/confikure-${project.version}-sources.jar")
+        dependsOn(named("sourcesJar"))
+        inputs.file(input)
+        outputs.file(output)
+        doLast {
+            copy {
+                from(input)
+                into(output.get().asFile.parentFile)
+                rename { output.get().asFile.name }
+            }
+        }
+    }
+
     assemble {
         dependsOn(remapJar)
+        dependsOn(releaseSourcesJar)
     }
 }
 
 tasks.named<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
     exclude("re/tsuku/confikure/dev/**")
 }
 
@@ -150,12 +165,24 @@ publishing {
     }
     repositories {
         maven {
-            name = "tsukureReleases"
-            url = uri("https://maven.tsuku.re/releases")
-        }
-        maven {
-            name = "tsukureSnapshots"
-            url = uri("https://maven.tsuku.re/snapshots")
+            name = "tsukure"
+            url = uri(if (version.toString().endsWith("-SNAPSHOT")) {
+                "https://maven.tsuku.re/snapshots"
+            } else {
+                "https://maven.tsuku.re/releases"
+            })
+            credentials {
+                username = publishUsername()
+                password = publishPassword()
+            }
         }
     }
+}
+
+fun publishUsername(): String? {
+    return System.getenv("REPOSILITE_USERNAME")
+}
+
+fun publishPassword(): String? {
+    return System.getenv("REPOSILITE_PASSWORD")
 }
