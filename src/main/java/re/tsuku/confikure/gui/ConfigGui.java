@@ -29,10 +29,15 @@ public final class ConfigGui implements EditorContext {
     private static final int SLIDER_TRACK_WIDTH = 94;
     private static final int SLIDER_FIELD_WIDTH = 42;
     private static final int DROP_ITEM_HEIGHT = 18;
-    private static final int OPTION_GAP = 4;
-    private static final int GROUP_HEADER_HEIGHT = 26;
+    private static final int OPTION_GAP = 0;
+    private static final int GROUP_HEADER_HEIGHT = 24;
     private static final int GROUP_HEADER_STEP = GROUP_HEADER_HEIGHT;
-    private static final int SCROLLBAR_WIDTH = 5;
+    private static final int GROUP_HEADER_ACCENT_WIDTH = 3;
+    private static final int GROUP_BODY_ACCENT_WIDTH = 2;
+    private static final int TEXT_LINE_GAP = 2;
+    private static final int SCROLLBAR_WIDTH = 2;
+    private static final int SCROLLBAR_GUTTER_WIDTH = SCROLLBAR_WIDTH;
+    private static final int SCROLLBAR_GUTTER_GAP = 6;
 
     private final ConfigDefinition definition;
     private final Map<EditorType, OptionEditor> editors;
@@ -395,20 +400,23 @@ public final class ConfigGui implements EditorContext {
                 continue;
             }
             boolean collapsed = collapsed(group);
+            int groupHeight = groupBlockHeight(group);
+            drawGroupShell(renderer, new GuiBounds(contentX, y, contentWidth, groupHeight), collapsed);
             drawGroupHeader(renderer, group, new GuiBounds(contentX, y, contentWidth, GROUP_HEADER_HEIGHT), collapsed);
-            y += GROUP_HEADER_STEP;
+            int optionY = y + GROUP_HEADER_STEP;
             if (!collapsed) {
                 for (ConfigOption option : group.options()) {
                     if (!option.visible()) {
                         continue;
                     }
                     int rowHeight = rowHeight(option);
-                    GuiBounds row = new GuiBounds(contentX, y, contentWidth, rowHeight);
+                    GuiBounds row = new GuiBounds(contentX, optionY, contentWidth, rowHeight);
                     drawOption(renderer, option, row);
-                    y += rowHeight + OPTION_GAP;
+                    optionY += rowHeight + OPTION_GAP;
                 }
             }
-            y += theme.groupGap;
+            drawGroupBottomBorder(renderer, new GuiBounds(contentX, y, contentWidth, groupHeight));
+            y += groupHeight + theme.groupGap;
         }
 
         renderer.popClip();
@@ -418,27 +426,78 @@ public final class ConfigGui implements EditorContext {
     }
 
     private void drawOption(GuiRenderer renderer, ConfigOption option, GuiBounds bounds) {
-        boxed(renderer, bounds, theme.panelRaised, theme.border);
+        int rowX = bounds.x + 1 + GROUP_BODY_ACCENT_WIDTH;
+        renderer.fill(rowX, bounds.y, bounds.x + bounds.width - 1, bounds.y + bounds.height,
+                theme.panelRaised);
+        renderer.fill(rowX, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1, theme.panel);
         int nameColor = !option.enabled()
                 ? theme.disabledText
                 : option.type() == EditorType.INFO ? theme.mutedText : theme.text;
-        renderer.text(option.name(), bounds.x + 8, bounds.y + 7, nameColor);
-        if (!option.description().isEmpty()) {
-            renderer.text(option.description(), bounds.x + 8, bounds.y + 19, theme.mutedText);
+        boolean hasDescription = !option.description().isEmpty();
+        int nameY = hasDescription
+                ? twoLineTextY(renderer, bounds)
+                : bounds.y + Math.max(4, (bounds.height - renderer.fontHeight()) / 2);
+        renderer.text(option.name(), bounds.x + 8, nameY, nameColor);
+        if (hasDescription) {
+            renderer.text(option.description(), bounds.x + 8, nameY + renderer.fontHeight() + TEXT_LINE_GAP,
+                    theme.mutedText);
         }
         editor(option).render(option, bounds, renderer, theme, this);
     }
 
     private void drawGroupHeader(GuiRenderer renderer, ConfigGroup group, GuiBounds bounds, boolean collapsed) {
         boolean hovered = bounds.contains(mouseX, mouseY);
-        boxed(renderer, bounds, hovered ? theme.panel : theme.panelRaised, hovered ? theme.accentDark : theme.border);
-        renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + 4, bounds.y + bounds.height - 1, theme.accentDark);
-        drawChevron(renderer, bounds.x + 13, bounds.y + 9, collapsed ? Direction.RIGHT : Direction.DOWN,
-                hovered ? theme.accent : theme.mutedText);
-        renderer.text(group.name(), bounds.x + 30, bounds.y + 4, hovered ? theme.text : theme.mutedText);
-        if (!group.description().isEmpty()) {
-            renderer.text(group.description(), bounds.x + 30, bounds.y + 15, theme.mutedText);
+        int headerBottom = collapsed ? bounds.y + bounds.height - 1 : bounds.y + bounds.height;
+        renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + bounds.width - 1, headerBottom,
+                hovered ? theme.panel : theme.panelRaised);
+        renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + 1 + GROUP_HEADER_ACCENT_WIDTH,
+                bounds.y + bounds.height - 1, theme.accentDark);
+        if (!collapsed) {
+            renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width - 1,
+                    bounds.y + bounds.height, theme.borderDark);
         }
+        drawChevron(renderer, bounds.x + 13, chevronY(bounds, collapsed ? Direction.RIGHT : Direction.DOWN),
+                collapsed ? Direction.RIGHT : Direction.DOWN,
+                hovered ? theme.accent : theme.mutedText);
+        boolean hasDescription = !group.description().isEmpty();
+        int nameY = hasDescription
+                ? twoLineTextY(renderer, bounds)
+                : bounds.y + Math.max(3, (bounds.height - renderer.fontHeight()) / 2);
+        renderer.text(group.name(), bounds.x + 30, nameY, hovered ? theme.accent : theme.text);
+        if (hasDescription) {
+            renderer.text(group.description(), bounds.x + 30, nameY + renderer.fontHeight() + TEXT_LINE_GAP,
+                    theme.mutedText);
+        }
+    }
+
+    private void drawGroupShell(GuiRenderer renderer, GuiBounds bounds, boolean collapsed) {
+        int fill = collapsed ? theme.panelRaised : theme.panel;
+        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, fill);
+        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + 1, theme.border);
+        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1, theme.border);
+        if (!collapsed && bounds.height > GROUP_HEADER_HEIGHT + 1) {
+            renderer.fill(bounds.x + 1, bounds.y + GROUP_HEADER_HEIGHT,
+                    bounds.x + 1 + GROUP_BODY_ACCENT_WIDTH, bounds.y + bounds.height - 1, theme.accentDark);
+        }
+        renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
+                theme.borderDark);
+        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width,
+                bounds.y + bounds.height, theme.borderDark);
+    }
+
+    private void drawGroupBottomBorder(GuiRenderer renderer, GuiBounds bounds) {
+        renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
+                theme.borderDark);
+    }
+
+    private int twoLineTextY(GuiRenderer renderer, GuiBounds bounds) {
+        int blockHeight = renderer.fontHeight() * 2 + TEXT_LINE_GAP;
+        return bounds.y + Math.max(2, (bounds.height - blockHeight) / 2);
+    }
+
+    private static int chevronY(GuiBounds bounds, Direction direction) {
+        int height = direction == Direction.DOWN ? 4 : 7;
+        return bounds.y + (bounds.height - height) / 2;
     }
 
     private void drawSidebarHeader(GuiRenderer renderer, GuiBounds panel) {
@@ -547,7 +606,8 @@ public final class ConfigGui implements EditorContext {
     }
 
     private int rowHeight(ConfigOption option) {
-        return option.type() == EditorType.MULTILINE_TEXT ? 58 : 36;
+        int rowHeight = Math.max(28, theme.rowHeight);
+        return option.type() == EditorType.MULTILINE_TEXT ? rowHeight + 22 : rowHeight;
     }
 
     private void clampScroll(GuiBounds panel) {
@@ -768,7 +828,8 @@ public final class ConfigGui implements EditorContext {
     }
 
     private int contentWidth(GuiBounds panel) {
-        return panel.width - SIDEBAR_WIDTH - theme.padding * 2;
+        return Math.max(120,
+                panel.width - SIDEBAR_WIDTH - theme.padding * 2 - SCROLLBAR_GUTTER_WIDTH - SCROLLBAR_GUTTER_GAP);
     }
 
     private int contentViewportHeight(GuiBounds panel) {
@@ -779,9 +840,14 @@ public final class ConfigGui implements EditorContext {
         return Math.max(0, contentHeight(category) - contentViewportHeight(panel));
     }
 
+    private GuiBounds scrollbarGutterBounds(GuiBounds panel) {
+        return new GuiBounds(panel.x + panel.width - theme.padding - SCROLLBAR_GUTTER_WIDTH, contentY(panel),
+                SCROLLBAR_GUTTER_WIDTH, contentViewportHeight(panel));
+    }
+
     private GuiBounds scrollbarTrackBounds(GuiBounds panel) {
-        return new GuiBounds(panel.x + panel.width - SCROLLBAR_WIDTH - 5, contentY(panel), SCROLLBAR_WIDTH,
-                contentViewportHeight(panel));
+        GuiBounds gutter = scrollbarGutterBounds(panel);
+        return new GuiBounds(gutter.x, gutter.y, gutter.width, gutter.height);
     }
 
     private GuiBounds scrollbarThumbBounds(GuiBounds panel) {
@@ -795,13 +861,14 @@ public final class ConfigGui implements EditorContext {
         if (contentHeight <= viewportHeight) {
             return new GuiBounds(track.x, track.y, track.width, track.height);
         }
-        int thumbHeight = Math.max(24, viewportHeight * viewportHeight / contentHeight);
-        int travel = Math.max(1, viewportHeight - thumbHeight);
+        int thumbHeight = Math.max(24, track.height * viewportHeight / contentHeight);
+        int travel = Math.max(1, track.height - thumbHeight);
         int thumbY = track.y + (int) Math.round(travel * (scroll / (double) maxScroll(panel, category)));
         return new GuiBounds(track.x, thumbY, track.width, thumbHeight);
     }
 
     private void drawScrollbar(GuiRenderer renderer, GuiBounds panel) {
+        GuiBounds gutter = scrollbarGutterBounds(panel);
         ConfigCategory category = category();
         if (category == null || maxScroll(panel, category) <= 0) {
             return;
@@ -809,17 +876,9 @@ public final class ConfigGui implements EditorContext {
         GuiBounds track = scrollbarTrackBounds(panel);
         GuiBounds thumb = scrollbarThumbBounds(panel);
         renderer.fill(track.x, track.y, track.x + track.width, track.y + track.height, theme.panel);
-        renderer.fill(track.x, track.y, track.x + track.width, track.y + 1, theme.borderDark);
-        renderer.fill(track.x, track.y, track.x + 1, track.y + track.height, theme.borderDark);
-        boolean hovered = track.contains(mouseX, mouseY) || draggingScrollbar;
+        boolean hovered = gutter.contains(mouseX, mouseY) || draggingScrollbar;
         renderer.fill(thumb.x, thumb.y, thumb.x + thumb.width, thumb.y + thumb.height,
-                hovered ? theme.panelRaised : theme.border);
-        renderer.fill(thumb.x, thumb.y, thumb.x + thumb.width, thumb.y + 1, theme.border);
-        renderer.fill(thumb.x, thumb.y, thumb.x + 1, thumb.y + thumb.height, theme.border);
-        renderer.fill(thumb.x, thumb.y + thumb.height - 1, thumb.x + thumb.width, thumb.y + thumb.height,
-                theme.borderDark);
-        renderer.fill(thumb.x + thumb.width - 1, thumb.y, thumb.x + thumb.width, thumb.y + thumb.height,
-                theme.borderDark);
+                hovered ? theme.accentDark : theme.border);
     }
 
     private boolean handleScrollbarClick(GuiBounds panel, int mouseX, int mouseY) {
@@ -827,8 +886,8 @@ public final class ConfigGui implements EditorContext {
         if (category == null || maxScroll(panel, category) <= 0) {
             return false;
         }
-        GuiBounds track = scrollbarTrackBounds(panel);
-        if (!track.contains(mouseX, mouseY)) {
+        GuiBounds gutter = scrollbarGutterBounds(panel);
+        if (!gutter.contains(mouseX, mouseY)) {
             return false;
         }
         GuiBounds thumb = scrollbarThumbBounds(panel);
@@ -1076,8 +1135,13 @@ public final class ConfigGui implements EditorContext {
             int selectionEnd, boolean hovered, boolean focused) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height,
                 hovered || focused ? theme.panelRaised : theme.panel);
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + 1, focused ? theme.accent : theme.border);
-        renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
+        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1,
+                focused ? theme.accent : theme.border);
+        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1,
+                focused ? theme.accent : theme.border);
+        renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
+                theme.borderDark);
+        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width, bounds.y + bounds.height,
                 theme.borderDark);
         int textX = bounds.x + 5;
         int textY = bounds.y + 5;
@@ -1156,20 +1220,20 @@ public final class ConfigGui implements EditorContext {
 
     private void frame(GuiRenderer renderer, int x, int y, int width, int height) {
         renderer.fill(x, y, x + width, y + height, theme.panel);
-        renderer.fill(x, y, x + width, y + 1, theme.border);
-        renderer.fill(x, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x, y, x + 1, y + height, theme.border);
-        renderer.fill(x + width - 1, y, x + width, y + height, theme.borderDark);
+        renderer.fill(x, y, x + width - 1, y + 1, theme.border);
+        renderer.fill(x, y, x + 1, y + height - 1, theme.border);
+        renderer.fill(x + 1, y + height - 1, x + width, y + height, theme.borderDark);
+        renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
     }
 
     private void boxed(GuiRenderer renderer, GuiBounds bounds, int fill, int border) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, fill);
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + 1, border);
-        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height, border);
-        renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
-                theme.borderDark);
-        renderer.fill(bounds.x + bounds.width - 1, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height,
-                theme.borderDark);
+        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1, border);
+        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1, border);
+        renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width,
+                bounds.y + bounds.height, theme.borderDark);
+        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width,
+                bounds.y + bounds.height, theme.borderDark);
     }
 
     private void drawChevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {

@@ -16,18 +16,18 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 690, 313);
+        gui.click(800, 600, 670, 285);
         gui.keyTyped('!', 0);
         assertEquals("line one!", config.visuals.notes);
 
-        gui.click(800, 600, 640, 185);
+        gui.click(800, 600, 640, 181);
         gui.keyTyped('\0', 35);
         assertEquals(35, config.visuals.openGui);
 
-        gui.click(800, 600, 690, 410);
+        gui.click(800, 600, 670, 358);
         assertEquals(Arrays.asList("two", "one"), config.visuals.order);
 
-        gui.click(800, 600, 670, 529);
+        gui.click(800, 600, 660, 441);
         gui.click(800, 600, 600, 474);
         gui.keyTyped('\0', 30, false, true);
         for (char character : "112233".toCharArray()) {
@@ -42,17 +42,17 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 690, 221);
+        gui.click(800, 600, 670, 212);
         assertEquals("simple", config.visuals.mode);
-        gui.click(800, 600, 690, 258);
+        gui.click(800, 600, 670, 241);
         assertEquals("fancy", config.visuals.mode);
 
         assertEquals("one", config.visuals.cycleMode);
-        gui.click(800, 600, 690, 267);
+        gui.click(800, 600, 670, 243);
         assertEquals("two", config.visuals.cycleMode);
-        gui.click(800, 600, 690, 267);
+        gui.click(800, 600, 670, 243);
         assertEquals("one", config.visuals.cycleMode);
-        gui.click(800, 600, 560, 267);
+        gui.click(800, 600, 550, 243);
         assertEquals("two", config.visuals.cycleMode);
     }
 
@@ -62,11 +62,11 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 300, 221);
+        gui.click(800, 600, 300, 212);
         assertEquals("simple", config.visuals.mode);
 
-        gui.click(800, 600, 690, 221);
-        gui.click(800, 600, 690, 258);
+        gui.click(800, 600, 670, 212);
+        gui.click(800, 600, 670, 241);
         assertEquals("fancy", config.visuals.mode);
     }
 
@@ -76,19 +76,19 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(0);
-        gui.click(800, 600, 584, 221);
-        gui.drag(800, 600, 694, 221);
+        gui.click(800, 600, 584, 212);
+        gui.drag(800, 600, 670, 212);
         gui.release();
         assertEquals(2.0D, config.movement.speed, 0.0D);
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 690, 313);
+        gui.click(800, 600, 670, 285);
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('x', 0);
         assertEquals("x", config.visuals.notes);
 
         gui.selectedCategory(0);
-        gui.click(800, 600, 690, 221);
+        gui.click(800, 600, 670, 212);
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('1', 0);
         gui.keyTyped('.', 0);
@@ -104,14 +104,14 @@ public final class ConfigGuiTest {
         assertFalse(gui.keyTyped('\0', 1));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 690, 313);
+        gui.click(800, 600, 670, 285);
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('x', 0);
         assertTrue(gui.keyTyped('\0', 28));
         assertEquals("x", config.visuals.notes);
         assertFalse(gui.keyTyped('\0', 1));
 
-        gui.click(800, 600, 690, 529);
+        gui.click(800, 600, 660, 441);
         assertTrue(gui.keyTyped('\0', 1));
         assertFalse(gui.keyTyped('\0', 1));
     }
@@ -122,7 +122,7 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 690, 185);
+        gui.click(800, 600, 672, 181);
         assertEquals(0, config.visuals.openGui);
     }
 }

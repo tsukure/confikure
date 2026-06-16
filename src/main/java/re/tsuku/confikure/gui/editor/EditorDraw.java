@@ -15,10 +15,10 @@ final class EditorDraw {
             boolean focused) {
         renderer.fill(x, y, x + width, y + height, hovered || focused ? theme.panelRaised : theme.panel);
         int light = focused ? theme.accent : theme.border;
-        renderer.fill(x, y, x + width, y + 1, light);
-        renderer.fill(x, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x, y, x + 1, y + height, light);
-        renderer.fill(x + width - 1, y, x + width, y + height, theme.borderDark);
+        renderer.fill(x, y, x + width - 1, y + 1, light);
+        renderer.fill(x, y, x + 1, y + height - 1, light);
+        renderer.fill(x + 1, y + height - 1, x + width, y + height, theme.borderDark);
+        renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
     }
 
     static void textField(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height, String text,
