@@ -15,6 +15,8 @@ run/
 .idea/
 .vscode/
 *.iml
+*.ipr
+*.iws
 
 *.log
 logs/

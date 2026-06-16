@@ -7,7 +7,7 @@ plugins {
     idea
     java
     `maven-publish`
-    id("gg.essential.loom") version "0.10.0.+"
+    id("gg.essential.loom") version "0.10.0.5"
     id("com.diffplug.spotless") version "8.1.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("dev.architectury.architectury-pack200") version "0.1.3"
@@ -86,6 +86,10 @@ tasks {
         archiveClassifier.set("non-obfuscated-with-deps")
         configurations = listOf(shade)
         exclude("re/tsuku/confikure/dev/**")
+        exclude("META-INF/maven/com.alibaba.fastjson2/**")
+        exclude("META-INF/native-image/com.alibaba.fastjson2/**")
+        exclude("META-INF/proguard/fastjson2.pro")
+        exclude("META-INF/scm/com.alibaba.fastjson2/**")
 
         relocate("com.alibaba.fastjson2", "re.tsuku.confikure.deps.fastjson2")
     }
@@ -160,6 +164,32 @@ publishing {
             }
             artifact(tasks.named("sourcesJar")) {
                 classifier = "sources"
+            }
+
+            pom {
+                name.set("confikure")
+                description.set("a small java config and gui library for legacy minecraft forge mods.")
+                url.set("https://github.com/tsukure/confikure")
+
+                licenses {
+                    license {
+                        name.set("mit license")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("tsukure")
+                        name.set("tsukure")
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:https://github.com/tsukure/confikure.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/tsukure/confikure.git")
+                    url.set("https://github.com/tsukure/confikure")
+                }
             }
         }
     }

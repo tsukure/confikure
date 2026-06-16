@@ -26,15 +26,29 @@ implemented:
 - a remapped forge jar with fastjson2 relocated to avoid mod shading conflicts
 - focused jvm tests for scanning, persistence, option behavior, and gui interaction rules
 
-still expected before a stable release:
-
-- migrations and config schema version handling
-- unknown-field preservation or backup behavior for hand-edited config files
-- a cleaner artifact split if the core api grows beyond the legacy forge target
-- more real mod integration
-- a final visual pass after more in-game testing
-
 ## install
+
+gradle kotlin dsl:
+
+```kotlin
+repositories {
+    maven("https://maven.tsuku.re/releases")
+}
+
+dependencies {
+    implementation("re.tsuku:confikure:1.0.0")
+}
+```
+
+for snapshots, use:
+
+```kotlin
+repositories {
+    maven("https://maven.tsuku.re/snapshots")
+}
+```
+
+maven:
 
 ```xml
 <repositories>
@@ -64,19 +78,17 @@ for snapshots, use:
 
 ## shading
 
-mods should shade and relocate both `confikure` and fastjson2:
+mods that bundle libraries should shade and relocate `confikure`:
 
 ```kotlin
 shade("re.tsuku:confikure:1.0.0-SNAPSHOT")
-shade("com.alibaba.fastjson2:fastjson2:2.0.62")
 
 shadowJar {
     relocate("re.tsuku.confikure", "your.mod.lib.confikure")
-    relocate("com.alibaba.fastjson2", "your.mod.lib.fastjson2")
 }
 ```
 
-the loom-built forge jar relocates fastjson2 to `re.tsuku.confikure.deps.fastjson2`.
+do not add or relocate `com.alibaba.fastjson2` for confikure. the published forge jar already includes fastjson2 relocated under `re.tsuku.confikure.deps.fastjson2`, and relocating `re.tsuku.confikure` moves that embedded dependency with the library.
 
 ## basic shape
 
@@ -114,6 +126,25 @@ ConfikureForge.open(config, configFile.toPath());
 ```
 
 when opening from a command, confikure delays the gui by one client tick so chat can close first.
+
+to embed the renderer inside your own `GuiScreen`, create a forge controller and forward your screen lifecycle:
+
+```java
+ConfikureForgeGui gui = ConfikureForge.gui(config, configFile.toPath(), confikure -> {
+    confikure.sidebarHeader((renderer, bounds, theme) -> {
+        renderer.text("examplemod", bounds.x, bounds.y, theme.text);
+        renderer.text("settings", bounds.x, bounds.y + 12, theme.mutedText);
+    });
+});
+
+gui.init(Minecraft.getMinecraft());
+gui.render(mc, width, height, mouseX, mouseY);
+gui.click(width, height, mouseX, mouseY);
+gui.keyTyped(typedChar, keyCode);
+gui.close();
+```
+
+`ConfigGui` only draws the panel by default. call `drawBackdrop(true)` if you want confikure to draw a fullscreen dim behind it.
 
 ## themes
 
