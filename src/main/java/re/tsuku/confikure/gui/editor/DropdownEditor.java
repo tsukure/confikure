@@ -13,7 +13,9 @@ final class DropdownEditor implements OptionEditor {
         int y = bounds.y + (bounds.height - 18) / 2;
         EditorDraw.frame(renderer, x, y, width, 18, theme, context.hovered(option), context.dropdownOpen(option));
         renderer.text(String.valueOf(option.get()), x + 5, y + 5, theme.text);
-        renderer.text(context.dropdownOpen(option) ? "^" : "v", x + width - 12, y + 5, theme.mutedText);
+        EditorDraw.chevron(renderer, x + width - 13, y + 7,
+                context.dropdownOpen(option) ? EditorDraw.Direction.UP : EditorDraw.Direction.DOWN,
+                context.hovered(option) || context.dropdownOpen(option) ? theme.accent : theme.mutedText);
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

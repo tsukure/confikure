@@ -4,12 +4,16 @@ import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 final class EditorDraw {
+    enum Direction {
+        LEFT, RIGHT, UP, DOWN
+    }
+
     private EditorDraw() {
     }
 
     static void frame(GuiRenderer renderer, int x, int y, int width, int height, ConfigTheme theme, boolean hovered,
             boolean focused) {
-        renderer.fill(x, y, x + width, y + height, hovered || focused ? theme.panelRaised : theme.panelSunken);
+        renderer.fill(x, y, x + width, y + height, hovered || focused ? theme.panelRaised : theme.panel);
         int light = focused ? theme.accent : theme.border;
         renderer.fill(x, y, x + width, y + 1, light);
         renderer.fill(x, y + height - 1, x + width, y + height, theme.borderDark);
@@ -48,5 +52,33 @@ final class EditorDraw {
             value = value.substring(0, value.length() - 1);
         }
         return value + "...";
+    }
+
+    static void chevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {
+        if (direction == Direction.LEFT) {
+            renderer.fill(x + 3, y, x + 4, y + 7, color);
+            renderer.fill(x + 2, y + 1, x + 3, y + 6, color);
+            renderer.fill(x + 1, y + 2, x + 2, y + 5, color);
+            renderer.fill(x, y + 3, x + 1, y + 4, color);
+            return;
+        }
+        if (direction == Direction.RIGHT) {
+            renderer.fill(x, y, x + 1, y + 7, color);
+            renderer.fill(x + 1, y + 1, x + 2, y + 6, color);
+            renderer.fill(x + 2, y + 2, x + 3, y + 5, color);
+            renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
+            return;
+        }
+        if (direction == Direction.UP) {
+            renderer.fill(x + 3, y, x + 4, y + 1, color);
+            renderer.fill(x + 2, y + 1, x + 5, y + 2, color);
+            renderer.fill(x + 1, y + 2, x + 6, y + 3, color);
+            renderer.fill(x, y + 3, x + 7, y + 4, color);
+            return;
+        }
+        renderer.fill(x, y, x + 7, y + 1, color);
+        renderer.fill(x + 1, y + 1, x + 6, y + 2, color);
+        renderer.fill(x + 2, y + 2, x + 5, y + 3, color);
+        renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
     }
 }

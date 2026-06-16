@@ -21,6 +21,7 @@ import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
 import re.tsuku.confikure.forge.ConfikureForge;
+import re.tsuku.confikure.gui.ConfigColorScheme;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
@@ -49,7 +50,11 @@ public final class ConfikureDevMod {
                 File file = new File(new File(Minecraft.getMinecraft().mcDataDir, "config"), "confikure-dev.json");
                 ConfikureForge.open(CONFIG, file.toPath(), new java.util.function.Consumer<ConfigGui>() {
                     public void accept(ConfigGui gui) {
-                        gui.themePreviews(true);
+                        gui.themeSupplier(new java.util.function.Supplier<ConfigTheme>() {
+                            public ConfigTheme get() {
+                                return ConfigColorScheme.byDisplayName(CONFIG.visuals.theme.scheme).theme();
+                            }
+                        });
                         gui.sidebarHeader(new ConfigGui.SidebarHeader() {
                             public void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme) {
                                 renderer.fill(bounds.x, bounds.y, bounds.x + 16, bounds.y + 16, theme.accentDark);
@@ -150,14 +155,18 @@ public final class ConfikureDevMod {
     }
 
     public static final class Theme {
-        @Option(name = "accent", description = "opens a color picker", order = 0)
+        @Option(name = "theme scheme", description = "changes the gui colors", order = 0)
+        @Dropdown(values = {"minecraft", "catppuccin mocha", "ayu mirage"})
+        public String scheme = "minecraft";
+
+        @Option(name = "accent", description = "opens a color picker", order = 1)
         @Color
         public int accent = 0xFF78A96B;
 
-        @Option(name = "title", description = "simple text input", order = 1)
+        @Option(name = "title", description = "simple text input", order = 2)
         public String title = "confikure";
 
-        @Option(name = "notes", description = "multiline text input", order = 2)
+        @Option(name = "notes", description = "multiline text input", order = 3)
         @Multiline
         public String notes = "hello from loom";
     }

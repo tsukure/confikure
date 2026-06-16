@@ -20,7 +20,7 @@ final class KeybindEditor implements OptionEditor {
             boolean hovered = context.mouseX() >= clearX && context.mouseY() >= y && context.mouseX() < x + 80
                     && context.mouseY() < y + 18;
             renderer.fill(clearX, y + 1, clearX + 1, y + 17, theme.borderDark);
-            renderer.fill(clearX + 1, y + 2, x + 78, y + 16, hovered ? theme.danger : theme.panelSunken);
+            renderer.fill(clearX + 1, y + 2, x + 78, y + 16, hovered ? theme.danger : theme.panel);
             renderer.centeredText("x", clearX, y + 5, 16, hovered ? theme.text : theme.mutedText);
         }
     }

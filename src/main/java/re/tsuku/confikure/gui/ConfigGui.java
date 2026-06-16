@@ -3,6 +3,7 @@ package re.tsuku.confikure.gui;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
 import re.tsuku.confikure.gui.editor.EditorContext;
 import re.tsuku.confikure.gui.editor.OptionEditor;
@@ -29,12 +30,16 @@ public final class ConfigGui implements EditorContext {
     private static final int SLIDER_FIELD_WIDTH = 42;
     private static final int DROP_ITEM_HEIGHT = 18;
     private static final int OPTION_GAP = 4;
+    private static final int GROUP_HEADER_HEIGHT = 26;
+    private static final int GROUP_HEADER_STEP = GROUP_HEADER_HEIGHT;
+    private static final int SCROLLBAR_WIDTH = 5;
 
     private final ConfigDefinition definition;
-    private final ConfigTheme theme;
     private final Map<EditorType, OptionEditor> editors;
     private final Map<ConfigOption, TextInputState> textStates = new HashMap<ConfigOption, TextInputState>();
     private final Map<String, Boolean> collapsedGroups = new HashMap<String, Boolean>();
+    private ConfigTheme theme;
+    private Supplier<ConfigTheme> themeSupplier;
     private GuiRenderer renderer;
     private KeyNameProvider keyNameProvider = new KeyNameProvider() {
         public String name(int keyCode) {
@@ -49,10 +54,11 @@ public final class ConfigGui implements EditorContext {
     private ConfigOption openDropdown;
     private ConfigOption openColorPicker;
     private ColorDrag colorDrag = ColorDrag.NONE;
+    private boolean draggingScrollbar;
+    private int scrollbarDragOffset;
     private SidebarHeader sidebarHeader;
     private Runnable closeHandler;
     private boolean drawBackdrop;
-    private boolean themePreviews;
     private int mouseX;
     private int mouseY;
 
@@ -88,8 +94,16 @@ public final class ConfigGui implements EditorContext {
         this.drawBackdrop = drawBackdrop;
     }
 
-    public void themePreviews(boolean themePreviews) {
-        this.themePreviews = themePreviews;
+    public void theme(ConfigTheme theme) {
+        if (theme == null) {
+            throw new NullPointerException("theme");
+        }
+        this.theme = theme;
+        this.themeSupplier = null;
+    }
+
+    public void themeSupplier(Supplier<ConfigTheme> themeSupplier) {
+        this.themeSupplier = themeSupplier;
     }
 
     public int selectedCategory() {
@@ -115,6 +129,12 @@ public final class ConfigGui implements EditorContext {
     }
 
     public void render(GuiRenderer renderer, int screenWidth, int screenHeight, int mouseX, int mouseY) {
+        if (themeSupplier != null) {
+            ConfigTheme supplied = themeSupplier.get();
+            if (supplied != null) {
+                theme = supplied;
+            }
+        }
         GuiBounds panel = panel(screenWidth, screenHeight);
         this.renderer = renderer;
         clampScroll(panel);
@@ -131,7 +151,6 @@ public final class ConfigGui implements EditorContext {
                 theme.panel);
         drawSidebarHeader(renderer, panel);
         drawCategories(renderer, panel, mouseX, mouseY);
-        drawThemePreviews(renderer, panel);
         drawCategory(renderer, panel, mouseX, mouseY);
     }
 
@@ -149,6 +168,10 @@ public final class ConfigGui implements EditorContext {
             if (closeHandler != null) {
                 closeHandler.run();
             }
+            return;
+        }
+        if (handleScrollbarClick(panel, mouseX, mouseY)) {
+            focusedOption = null;
             return;
         }
 
@@ -223,10 +246,14 @@ public final class ConfigGui implements EditorContext {
     }
 
     public void drag(int screenWidth, int screenHeight, int mouseX, int mouseY) {
+        GuiBounds panel = panel(screenWidth, screenHeight);
+        if (draggingScrollbar) {
+            scrollToScrollbar(panel, mouseY - scrollbarDragOffset);
+            return;
+        }
         if (activeOption == null) {
             return;
         }
-        GuiBounds panel = panel(screenWidth, screenHeight);
         if (activeOption.type() == EditorType.NUMBER) {
             setSliderValue(activeOption, optionBounds(panel, activeOption), mouseX);
             return;
@@ -239,6 +266,7 @@ public final class ConfigGui implements EditorContext {
     public void release() {
         activeOption = null;
         colorDrag = ColorDrag.NONE;
+        draggingScrollbar = false;
     }
 
     public boolean keyTyped(char typedChar, int keyCode) {
@@ -330,15 +358,20 @@ public final class ConfigGui implements EditorContext {
     }
 
     private void drawCategories(GuiRenderer renderer, GuiBounds panel, int mouseX, int mouseY) {
+        if (definition.categories().isEmpty()) {
+            return;
+        }
         for (int i = 0; i < definition.categories().size(); i++) {
             ConfigCategory category = definition.categories().get(i);
             GuiBounds tab = categoryBounds(panel, i);
             boolean selected = i == selectedCategory;
             boolean hovered = tab.contains(mouseX, mouseY);
-            boxed(renderer, tab, selected ? theme.accentDark : theme.panelRaised,
-                    selected || hovered ? theme.accent : theme.border);
-            renderer.fill(tab.x, tab.y, tab.x + 2, tab.y + tab.height, selected ? theme.accent : theme.border);
-            renderer.text(category.name(), tab.x + 8, tab.y + 6, selected ? theme.text : theme.mutedText);
+            int fill = selected ? theme.accentDark : hovered ? theme.panel : theme.panelRaised;
+            boxed(renderer, tab, fill, selected ? theme.accent : theme.border);
+            renderer.fill(tab.x, tab.y, tab.x + 2, tab.y + tab.height,
+                    selected ? theme.accent : hovered ? theme.accentDark : theme.border);
+            renderer.text(category.name(), tab.x + 8, tab.y + 6,
+                    selected || hovered ? theme.text : theme.mutedText);
         }
     }
 
@@ -349,11 +382,11 @@ public final class ConfigGui implements EditorContext {
             return;
         }
 
-        int contentX = panel.x + SIDEBAR_WIDTH + theme.padding;
+        int contentX = contentX(panel);
         drawContentTopBar(renderer, panel, category);
-        int contentY = panel.y + TOP_BAR_HEIGHT + theme.padding;
-        int contentWidth = panel.width - SIDEBAR_WIDTH - theme.padding * 2;
-        int contentHeight = panel.height - TOP_BAR_HEIGHT - theme.padding * 2;
+        int contentY = contentY(panel);
+        int contentWidth = contentWidth(panel);
+        int contentHeight = contentViewportHeight(panel);
         renderer.pushClip(contentX, contentY, contentWidth, contentHeight);
 
         int y = contentY - scroll;
@@ -362,8 +395,8 @@ public final class ConfigGui implements EditorContext {
                 continue;
             }
             boolean collapsed = collapsed(group);
-            drawGroupHeader(renderer, group, new GuiBounds(contentX, y, contentWidth, 22), collapsed);
-            y += 26;
+            drawGroupHeader(renderer, group, new GuiBounds(contentX, y, contentWidth, GROUP_HEADER_HEIGHT), collapsed);
+            y += GROUP_HEADER_STEP;
             if (!collapsed) {
                 for (ConfigOption option : group.options()) {
                     if (!option.visible()) {
@@ -379,14 +412,13 @@ public final class ConfigGui implements EditorContext {
         }
 
         renderer.popClip();
+        drawScrollbar(renderer, panel);
         drawDropdown(renderer, panel);
         drawColorPicker(renderer, panel);
     }
 
     private void drawOption(GuiRenderer renderer, ConfigOption option, GuiBounds bounds) {
         boxed(renderer, bounds, theme.panelRaised, theme.border);
-        renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + bounds.width - 1, bounds.y + 2,
-                option == hoveredOption ? theme.accentDark : theme.border);
         int nameColor = !option.enabled()
                 ? theme.disabledText
                 : option.type() == EditorType.INFO ? theme.mutedText : theme.text;
@@ -399,13 +431,13 @@ public final class ConfigGui implements EditorContext {
 
     private void drawGroupHeader(GuiRenderer renderer, ConfigGroup group, GuiBounds bounds, boolean collapsed) {
         boolean hovered = bounds.contains(mouseX, mouseY);
-        boxed(renderer, bounds, theme.panelRaised, hovered ? theme.accent : theme.border);
-        renderer.fill(bounds.x, bounds.y, bounds.x + 2, bounds.y + bounds.height, theme.accentDark);
-        renderer.text(collapsed ? ">" : "v", bounds.x + 7, bounds.y + 7, hovered ? theme.accent : theme.mutedText);
-        renderer.text(group.name(), bounds.x + 20, bounds.y + 7, hovered ? theme.text : theme.mutedText);
+        boxed(renderer, bounds, hovered ? theme.panel : theme.panelRaised, hovered ? theme.accentDark : theme.border);
+        renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + 4, bounds.y + bounds.height - 1, theme.accentDark);
+        drawChevron(renderer, bounds.x + 13, bounds.y + 9, collapsed ? Direction.RIGHT : Direction.DOWN,
+                hovered ? theme.accent : theme.mutedText);
+        renderer.text(group.name(), bounds.x + 30, bounds.y + 4, hovered ? theme.text : theme.mutedText);
         if (!group.description().isEmpty()) {
-            renderer.text(group.description(), bounds.x + 20 + renderer.textWidth(group.name()) + 8, bounds.y + 7,
-                    theme.mutedText);
+            renderer.text(group.description(), bounds.x + 30, bounds.y + 15, theme.mutedText);
         }
     }
 
@@ -421,31 +453,6 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
-    private void drawThemePreviews(GuiRenderer renderer, GuiBounds panel) {
-        if (!themePreviews) {
-            return;
-        }
-        int x = panel.x + 8;
-        int y = panel.y + panel.height - 72;
-        renderer.text("themes", x, y, theme.mutedText);
-        y += 12;
-        for (ConfigColorScheme scheme : ConfigColorScheme.values()) {
-            drawThemePreview(renderer, scheme, x, y);
-            y += 16;
-        }
-    }
-
-    private void drawThemePreview(GuiRenderer renderer, ConfigColorScheme scheme, int x, int y) {
-        ConfigTheme preview = scheme.theme();
-        renderer.fill(x, y, x + SIDEBAR_WIDTH - 16, y + 13, preview.panel);
-        renderer.fill(x, y, x + SIDEBAR_WIDTH - 16, y + 1, preview.border);
-        renderer.fill(x, y + 12, x + SIDEBAR_WIDTH - 16, y + 13, preview.borderDark);
-        renderer.fill(x + 2, y + 3, x + 13, y + 10, preview.accent);
-        renderer.fill(x + 16, y + 3, x + 27, y + 10, preview.panelRaised);
-        renderer.fill(x + 30, y + 3, x + 41, y + 10, preview.slot);
-        renderer.text(scheme.displayName(), x + 46, y + 3, preview.text);
-    }
-
     private void drawContentTopBar(GuiRenderer renderer, GuiBounds panel, ConfigCategory category) {
         int x = panel.x + SIDEBAR_WIDTH + 1;
         int y = panel.y + 1;
@@ -459,7 +466,7 @@ public final class ConfigGui implements EditorContext {
         }
         GuiBounds close = closeBounds(panel);
         boolean hovered = close.contains(mouseX, mouseY);
-        boxed(renderer, close, hovered ? theme.danger : theme.panelSunken, hovered ? theme.text : theme.border);
+        boxed(renderer, close, hovered ? theme.danger : theme.panel, hovered ? theme.text : theme.border);
         renderer.centeredText("x", close.x, close.y + 5, close.width, hovered ? theme.text : theme.mutedText);
     }
 
@@ -476,7 +483,7 @@ public final class ConfigGui implements EditorContext {
             boolean hovered = mouseX >= bounds.x && mouseY >= y && mouseX < bounds.x + bounds.width
                     && mouseY < y + DROP_ITEM_HEIGHT;
             renderer.fill(bounds.x + 1, y + 1, bounds.x + bounds.width - 1, y + DROP_ITEM_HEIGHT,
-                    hovered ? theme.panelRaised : selected ? theme.accentDark : theme.panelSunken);
+                    selected ? theme.accentDark : hovered ? theme.panelRaised : theme.panel);
             renderer.text(choice, bounds.x + 5, y + 5, selected || hovered ? theme.text : theme.mutedText);
         }
     }
@@ -549,7 +556,7 @@ public final class ConfigGui implements EditorContext {
             scroll = 0;
             return;
         }
-        int maxScroll = Math.max(0, contentHeight(category) - (panel.height - TOP_BAR_HEIGHT - theme.padding * 2));
+        int maxScroll = maxScroll(panel, category);
         scroll = Math.max(0, Math.min(scroll, maxScroll));
     }
 
@@ -559,15 +566,20 @@ public final class ConfigGui implements EditorContext {
             if (!hasVisibleOptions(group)) {
                 continue;
             }
-            height += 26;
-            if (!collapsed(group)) {
-                for (ConfigOption option : group.options()) {
-                    if (option.visible()) {
-                        height += rowHeight(option) + OPTION_GAP;
-                    }
+            height += groupBlockHeight(group);
+            height += theme.groupGap;
+        }
+        return height;
+    }
+
+    private int groupBlockHeight(ConfigGroup group) {
+        int height = GROUP_HEADER_STEP;
+        if (!collapsed(group)) {
+            for (ConfigOption option : group.options()) {
+                if (option.visible()) {
+                    height += rowHeight(option) + OPTION_GAP;
                 }
             }
-            height += theme.groupGap;
         }
         return height;
     }
@@ -577,14 +589,14 @@ public final class ConfigGui implements EditorContext {
         if (category == null) {
             return null;
         }
-        int contentX = panel.x + SIDEBAR_WIDTH + theme.padding;
-        int y = panel.y + TOP_BAR_HEIGHT + theme.padding - scroll;
-        int contentWidth = panel.width - SIDEBAR_WIDTH - theme.padding * 2;
+        int contentX = contentX(panel);
+        int y = contentY(panel) - scroll;
+        int contentWidth = contentWidth(panel);
         for (ConfigGroup group : category.groups()) {
             if (!hasVisibleOptions(group)) {
                 continue;
             }
-            y += 26;
+            y += GROUP_HEADER_STEP;
             if (!collapsed(group)) {
                 for (ConfigOption option : group.options()) {
                     if (!option.visible()) {
@@ -618,14 +630,14 @@ public final class ConfigGui implements EditorContext {
 
     private GuiBounds optionBounds(GuiBounds panel, ConfigOption target) {
         ConfigCategory category = category();
-        int contentX = panel.x + SIDEBAR_WIDTH + theme.padding;
-        int y = panel.y + TOP_BAR_HEIGHT + theme.padding - scroll;
-        int contentWidth = panel.width - SIDEBAR_WIDTH - theme.padding * 2;
+        int contentX = contentX(panel);
+        int y = contentY(panel) - scroll;
+        int contentWidth = contentWidth(panel);
         for (ConfigGroup group : category.groups()) {
             if (!hasVisibleOptions(group)) {
                 continue;
             }
-            y += 26;
+            y += GROUP_HEADER_STEP;
             if (!collapsed(group)) {
                 for (ConfigOption option : group.options()) {
                     if (!option.visible()) {
@@ -648,17 +660,17 @@ public final class ConfigGui implements EditorContext {
         if (category == null) {
             return null;
         }
-        int contentX = panel.x + SIDEBAR_WIDTH + theme.padding;
-        int y = panel.y + TOP_BAR_HEIGHT + theme.padding - scroll;
-        int contentWidth = panel.width - SIDEBAR_WIDTH - theme.padding * 2;
+        int contentX = contentX(panel);
+        int y = contentY(panel) - scroll;
+        int contentWidth = contentWidth(panel);
         for (ConfigGroup group : category.groups()) {
             if (!hasVisibleOptions(group)) {
                 continue;
             }
-            if (new GuiBounds(contentX, y, contentWidth, 22).contains(mouseX, mouseY)) {
+            if (new GuiBounds(contentX, y, contentWidth, GROUP_HEADER_HEIGHT).contains(mouseX, mouseY)) {
                 return groupKey(group);
             }
-            y += 26;
+            y += GROUP_HEADER_STEP;
             if (!collapsed(group)) {
                 for (ConfigOption option : group.options()) {
                     if (option.visible()) {
@@ -745,6 +757,99 @@ public final class ConfigGui implements EditorContext {
     private GuiBounds rightBounds(GuiBounds row, int width, int height) {
         return new GuiBounds(row.x + row.width - width - CONTROL_RIGHT_PADDING, row.y + (row.height - height) / 2,
                 width, height);
+    }
+
+    private int contentX(GuiBounds panel) {
+        return panel.x + SIDEBAR_WIDTH + theme.padding;
+    }
+
+    private int contentY(GuiBounds panel) {
+        return panel.y + TOP_BAR_HEIGHT + theme.padding;
+    }
+
+    private int contentWidth(GuiBounds panel) {
+        return panel.width - SIDEBAR_WIDTH - theme.padding * 2;
+    }
+
+    private int contentViewportHeight(GuiBounds panel) {
+        return panel.height - TOP_BAR_HEIGHT - theme.padding * 2;
+    }
+
+    private int maxScroll(GuiBounds panel, ConfigCategory category) {
+        return Math.max(0, contentHeight(category) - contentViewportHeight(panel));
+    }
+
+    private GuiBounds scrollbarTrackBounds(GuiBounds panel) {
+        return new GuiBounds(panel.x + panel.width - SCROLLBAR_WIDTH - 5, contentY(panel), SCROLLBAR_WIDTH,
+                contentViewportHeight(panel));
+    }
+
+    private GuiBounds scrollbarThumbBounds(GuiBounds panel) {
+        ConfigCategory category = category();
+        GuiBounds track = scrollbarTrackBounds(panel);
+        if (category == null) {
+            return new GuiBounds(track.x, track.y, track.width, track.height);
+        }
+        int contentHeight = contentHeight(category);
+        int viewportHeight = contentViewportHeight(panel);
+        if (contentHeight <= viewportHeight) {
+            return new GuiBounds(track.x, track.y, track.width, track.height);
+        }
+        int thumbHeight = Math.max(24, viewportHeight * viewportHeight / contentHeight);
+        int travel = Math.max(1, viewportHeight - thumbHeight);
+        int thumbY = track.y + (int) Math.round(travel * (scroll / (double) maxScroll(panel, category)));
+        return new GuiBounds(track.x, thumbY, track.width, thumbHeight);
+    }
+
+    private void drawScrollbar(GuiRenderer renderer, GuiBounds panel) {
+        ConfigCategory category = category();
+        if (category == null || maxScroll(panel, category) <= 0) {
+            return;
+        }
+        GuiBounds track = scrollbarTrackBounds(panel);
+        GuiBounds thumb = scrollbarThumbBounds(panel);
+        renderer.fill(track.x, track.y, track.x + track.width, track.y + track.height, theme.panel);
+        renderer.fill(track.x, track.y, track.x + track.width, track.y + 1, theme.borderDark);
+        renderer.fill(track.x, track.y, track.x + 1, track.y + track.height, theme.borderDark);
+        boolean hovered = track.contains(mouseX, mouseY) || draggingScrollbar;
+        renderer.fill(thumb.x, thumb.y, thumb.x + thumb.width, thumb.y + thumb.height,
+                hovered ? theme.panelRaised : theme.border);
+        renderer.fill(thumb.x, thumb.y, thumb.x + thumb.width, thumb.y + 1, theme.border);
+        renderer.fill(thumb.x, thumb.y, thumb.x + 1, thumb.y + thumb.height, theme.border);
+        renderer.fill(thumb.x, thumb.y + thumb.height - 1, thumb.x + thumb.width, thumb.y + thumb.height,
+                theme.borderDark);
+        renderer.fill(thumb.x + thumb.width - 1, thumb.y, thumb.x + thumb.width, thumb.y + thumb.height,
+                theme.borderDark);
+    }
+
+    private boolean handleScrollbarClick(GuiBounds panel, int mouseX, int mouseY) {
+        ConfigCategory category = category();
+        if (category == null || maxScroll(panel, category) <= 0) {
+            return false;
+        }
+        GuiBounds track = scrollbarTrackBounds(panel);
+        if (!track.contains(mouseX, mouseY)) {
+            return false;
+        }
+        GuiBounds thumb = scrollbarThumbBounds(panel);
+        draggingScrollbar = true;
+        scrollbarDragOffset = thumb.contains(mouseX, mouseY) ? mouseY - thumb.y : thumb.height / 2;
+        scrollToScrollbar(panel, mouseY - scrollbarDragOffset);
+        return true;
+    }
+
+    private void scrollToScrollbar(GuiBounds panel, int thumbY) {
+        ConfigCategory category = category();
+        if (category == null) {
+            scroll = 0;
+            return;
+        }
+        GuiBounds track = scrollbarTrackBounds(panel);
+        GuiBounds thumb = scrollbarThumbBounds(panel);
+        int maxScroll = maxScroll(panel, category);
+        int travel = Math.max(1, track.height - thumb.height);
+        int localY = Math.max(0, Math.min(travel, thumbY - track.y));
+        scroll = (int) Math.round(maxScroll * (localY / (double) travel));
     }
 
     private boolean handleDropdownClick(GuiBounds panel, int mouseX, int mouseY) {
@@ -850,7 +955,9 @@ public final class ConfigGui implements EditorContext {
         state.maxLength(option.type() == EditorType.MULTILINE_TEXT ? 2048 : 256);
         state.filter(TextInputState.CharacterFilter.ANY);
         if (renderer != null) {
-            state.cursorAt(renderer, firstLine(text), bounds.x + bounds.width - EDITOR_WIDTH + 4, mouseX);
+            state.cursorAt(renderer, firstLine(text),
+                    bounds.x + bounds.width - EDITOR_WIDTH - CONTROL_RIGHT_PADDING + 5,
+                    mouseX);
         }
     }
 
@@ -968,7 +1075,7 @@ public final class ConfigGui implements EditorContext {
     private void drawTextField(GuiRenderer renderer, GuiBounds bounds, String text, int cursor, int selectionStart,
             int selectionEnd, boolean hovered, boolean focused) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height,
-                hovered || focused ? theme.panelRaised : theme.panelSunken);
+                hovered || focused ? theme.panelRaised : theme.panel);
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + 1, focused ? theme.accent : theme.border);
         renderer.fill(bounds.x, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
                 theme.borderDark);
@@ -1065,6 +1172,22 @@ public final class ConfigGui implements EditorContext {
                 theme.borderDark);
     }
 
+    private void drawChevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {
+        if (direction == Direction.DOWN) {
+            renderer.fill(x, y, x + 7, y + 1, color);
+            renderer.fill(x + 1, y + 1, x + 6, y + 2, color);
+            renderer.fill(x + 2, y + 2, x + 5, y + 3, color);
+            renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
+            return;
+        }
+        if (direction == Direction.RIGHT) {
+            renderer.fill(x, y, x + 1, y + 7, color);
+            renderer.fill(x + 1, y + 1, x + 2, y + 6, color);
+            renderer.fill(x + 2, y + 2, x + 3, y + 5, color);
+            renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
+        }
+    }
+
     private static int color(ConfigOption option) {
         return option.get() instanceof Number ? ((Number) option.get()).intValue() : 0xFFFFFFFF;
     }
@@ -1158,6 +1281,10 @@ public final class ConfigGui implements EditorContext {
 
     private enum ColorDrag {
         NONE, SQUARE, HUE
+    }
+
+    private enum Direction {
+        DOWN, RIGHT
     }
 
     public interface KeyNameProvider {

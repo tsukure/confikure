@@ -22,4 +22,13 @@ public enum ConfigColorScheme {
     public ConfigTheme theme() {
         return theme;
     }
+
+    public static ConfigColorScheme byDisplayName(String displayName) {
+        for (ConfigColorScheme scheme : values()) {
+            if (scheme.displayName.equals(displayName)) {
+                return scheme;
+            }
+        }
+        return MINECRAFT;
+    }
 }

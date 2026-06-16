@@ -162,6 +162,12 @@ ConfigGui gui = new ConfigGui(definition, ConfigTheme.catppuccinMocha(), Default
 
 the built-in presets are also exposed through `ConfigColorScheme`.
 
+for config-driven themes, provide a supplier:
+
+```java
+gui.themeSupplier(() -> ConfigColorScheme.byDisplayName(config.visuals.themeScheme).theme());
+```
+
 ## build
 
 run tests:
