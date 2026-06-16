@@ -21,6 +21,10 @@ import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
 import re.tsuku.confikure.forge.ConfikureForge;
+import re.tsuku.confikure.gui.ConfigGui;
+import re.tsuku.confikure.gui.ConfigTheme;
+import re.tsuku.confikure.gui.GuiBounds;
+import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 @Mod(modid = "confikure-dev", name = "confikure dev", version = "dev", clientSideOnly = true)
 public final class ConfikureDevMod {
@@ -43,7 +47,19 @@ public final class ConfikureDevMod {
 
             public void processCommand(ICommandSender sender, String[] args) {
                 File file = new File(new File(Minecraft.getMinecraft().mcDataDir, "config"), "confikure-dev.json");
-                ConfikureForge.open(CONFIG, file.toPath());
+                ConfikureForge.open(CONFIG, file.toPath(), new java.util.function.Consumer<ConfigGui>() {
+                    public void accept(ConfigGui gui) {
+                        gui.themePreviews(true);
+                        gui.sidebarHeader(new ConfigGui.SidebarHeader() {
+                            public void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme) {
+                                renderer.fill(bounds.x, bounds.y, bounds.x + 16, bounds.y + 16, theme.accentDark);
+                                renderer.fill(bounds.x + 3, bounds.y + 3, bounds.x + 13, bounds.y + 13, theme.accent);
+                                renderer.text("confikure", bounds.x + 22, bounds.y, theme.text);
+                                renderer.text("dev preview", bounds.x + 22, bounds.y + 12, theme.mutedText);
+                            }
+                        });
+                    }
+                });
             }
         });
     }

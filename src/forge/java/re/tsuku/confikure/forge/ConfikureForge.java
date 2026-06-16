@@ -1,12 +1,14 @@
 package re.tsuku.confikure.forge;
 
 import java.nio.file.Path;
+import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import re.tsuku.confikure.Confikure;
+import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.persistence.ConfigStore;
 
@@ -25,8 +27,16 @@ public final class ConfikureForge {
     }
 
     public static ConfikureForgeScreen screen(Object config, Path path) {
+        return screen(config, path, null);
+    }
+
+    public static ConfikureForgeScreen screen(Object config, Path path, Consumer<ConfigGui> configurator) {
         ConfigDefinition definition = Confikure.scan(config);
-        return new ConfikureForgeScreen(definition, path, new ConfigStore());
+        return new ConfikureForgeScreen(definition, path, new ConfigStore(), configurator);
+    }
+
+    public static ConfikureForgeGui gui(Object config, Path path, Consumer<ConfigGui> configurator) {
+        return new ConfikureForgeGui(Confikure.scan(config), path, new ConfigStore(), configurator);
     }
 
     public static void open(Object config) {
@@ -35,6 +45,10 @@ public final class ConfikureForge {
 
     public static void open(Object config, Path path) {
         open(screen(config, path));
+    }
+
+    public static void open(Object config, Path path, Consumer<ConfigGui> configurator) {
+        open(screen(config, path, configurator));
     }
 
     public static void open(ConfikureForgeScreen screen) {

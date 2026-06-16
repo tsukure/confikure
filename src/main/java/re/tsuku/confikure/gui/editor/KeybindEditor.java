@@ -12,13 +12,15 @@ final class KeybindEditor implements OptionEditor {
         int y = bounds.y + (bounds.height - 18) / 2;
         EditorDraw.frame(renderer, x, y, 80, 18, theme, context.hovered(option), context.focused(option));
         int clearX = x + 64;
+        boolean showClear = option.keybindClearable() && (context.hovered(option) || context.focused(option));
         renderer.centeredText(context.focused(option) ? "press key" : context.displayValue(option), x, y + 5,
-                option.keybindClearable() ? 62 : 80,
+                showClear ? 62 : 80,
                 context.focused(option) ? theme.accent : theme.text);
-        if (option.keybindClearable()) {
+        if (showClear) {
             boolean hovered = context.mouseX() >= clearX && context.mouseY() >= y && context.mouseX() < x + 80
                     && context.mouseY() < y + 18;
-            renderer.fill(clearX, y + 1, x + 79, y + 17, hovered ? theme.danger : theme.panelSunken);
+            renderer.fill(clearX, y + 1, clearX + 1, y + 17, theme.borderDark);
+            renderer.fill(clearX + 1, y + 2, x + 78, y + 16, hovered ? theme.danger : theme.panelSunken);
             renderer.centeredText("x", clearX, y + 5, 16, hovered ? theme.text : theme.mutedText);
         }
     }
