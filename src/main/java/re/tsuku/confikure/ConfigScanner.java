@@ -62,6 +62,7 @@ public final class ConfigScanner {
             categories.add(new ConfigCategory(id, category.name(), category.description(), category.order(), instance,
                     findGroups(instance)));
         }
+        requireUniqueCategoryIds(categories);
         categories.sort(Comparator.comparingInt(ConfigCategory::order).thenComparing(ConfigCategory::id));
         return Collections.unmodifiableList(categories);
     }
@@ -80,7 +81,7 @@ public final class ConfigScanner {
                 field.setAccessible(true);
                 Object instance = read(field, category);
                 String id = group.id().isEmpty() ? stableId(group.name()) : group.id();
-                group(groups, id, group.name(), group.description(), group.order()).options
+                group(groups, id, group.name(), group.description(), group.order(), true).options
                         .addAll(findOptions(instance, id));
             }
 
@@ -118,6 +119,7 @@ public final class ConfigScanner {
             if (builder.options.isEmpty()) {
                 continue;
             }
+            requireUniqueOptionIds(builder.id, builder.options);
             builder.options.sort(Comparator.comparingInt(ConfigOption::order).thenComparing(ConfigOption::id));
             result.add(new ConfigGroup(builder.id, builder.name, builder.description, builder.order,
                     Collections.unmodifiableList(new ArrayList<>(builder.options))));
@@ -234,6 +236,45 @@ public final class ConfigScanner {
         return builder;
     }
 
+    private static GroupBuilder group(Map<String, GroupBuilder> groups, String id, String name, String description,
+            int order, boolean explicit) {
+        GroupBuilder existing = groups.get(id);
+        if (existing != null) {
+            if (explicit && existing.explicit) {
+                throw new IllegalArgumentException("duplicate group id: " + id);
+            }
+            if (explicit) {
+                existing.name = name;
+                existing.description = description;
+                existing.order = order;
+                existing.explicit = true;
+            }
+            return existing;
+        }
+        GroupBuilder builder = new GroupBuilder(id, name, description, order);
+        builder.explicit = explicit;
+        groups.put(id, builder);
+        return builder;
+    }
+
+    private static void requireUniqueCategoryIds(List<ConfigCategory> categories) {
+        Map<String, ConfigCategory> seen = new LinkedHashMap<>();
+        for (ConfigCategory category : categories) {
+            if (seen.put(category.id(), category) != null) {
+                throw new IllegalArgumentException("duplicate category id: " + category.id());
+            }
+        }
+    }
+
+    private static void requireUniqueOptionIds(String groupId, List<ConfigOption> options) {
+        Map<String, ConfigOption> seen = new LinkedHashMap<>();
+        for (ConfigOption option : options) {
+            if (seen.put(option.id(), option) != null) {
+                throw new IllegalArgumentException("duplicate option id in group " + groupId + ": " + option.id());
+            }
+        }
+    }
+
     private static List<Field> fields(Class<?> type) {
         List<Field> fields = new ArrayList<>();
         Class<?> current = type;
@@ -323,9 +364,10 @@ public final class ConfigScanner {
 
     private static final class GroupBuilder {
         private final String id;
-        private final String name;
-        private final String description;
-        private final int order;
+        private String name;
+        private String description;
+        private int order;
+        private boolean explicit;
         private final List<ConfigOption> options = new ArrayList<>();
 
         private GroupBuilder(String id, String name, String description, int order) {

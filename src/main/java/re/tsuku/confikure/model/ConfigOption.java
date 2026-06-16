@@ -1,8 +1,10 @@
 package re.tsuku.confikure.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -43,7 +45,7 @@ public final class ConfigOption {
         this.order = order;
         this.type = type;
         this.access = access;
-        this.defaultValue = defaultValue;
+        this.defaultValue = copyValue(defaultValue);
         this.range = range;
         this.choices = choices == null ? Collections.<String>emptyList() : choices;
         this.searchTags = searchTags == null ? Collections.<String>emptyList() : searchTags;
@@ -80,7 +82,7 @@ public final class ConfigOption {
     }
 
     public Object defaultValue() {
-        return defaultValue;
+        return copyValue(defaultValue);
     }
 
     public NumberRange range() {
@@ -136,7 +138,7 @@ public final class ConfigOption {
         Object nextValue = coerce(value);
         access.set(nextValue);
         Object newValue = get();
-        if (!Objects.equals(oldValue, newValue)) {
+        if (!valueEquals(oldValue, newValue)) {
             notifyListeners(oldValue, newValue);
         }
     }
@@ -149,12 +151,12 @@ public final class ConfigOption {
     }
 
     public boolean dirty() {
-        return !Objects.equals(defaultValue, get());
+        return !valueEquals(defaultValue, get());
     }
 
     public void reset() {
         if (type != EditorType.BUTTON && type != EditorType.INFO) {
-            set(defaultValue);
+            set(copyValue(defaultValue));
         }
     }
 
@@ -180,7 +182,13 @@ public final class ConfigOption {
     }
 
     private Object coerce(Object value) {
-        if (range != null && value instanceof Number) {
+        if (value == null) {
+            if (valueType().isPrimitive()) {
+                throw new IllegalArgumentException("null is not valid for " + id);
+            }
+            return null;
+        }
+        if (value instanceof Number && numericType(valueType())) {
             return coerceNumber((Number) value);
         }
         if ((type == EditorType.DROPDOWN || type == EditorType.MODE) && !choices.isEmpty()) {
@@ -202,7 +210,7 @@ public final class ConfigOption {
     }
 
     private Object coerceNumber(Number value) {
-        double coerced = range.coerce(value.doubleValue());
+        double coerced = range == null ? value.doubleValue() : range.coerce(value.doubleValue());
         Class<?> valueType = valueType();
         if (valueType == int.class || valueType == Integer.class) {
             return (int) Math.round(coerced);
@@ -213,7 +221,89 @@ public final class ConfigOption {
         if (valueType == float.class || valueType == Float.class) {
             return (float) coerced;
         }
+        if (valueType == byte.class || valueType == Byte.class) {
+            return (byte) Math.round(coerced);
+        }
+        if (valueType == short.class || valueType == Short.class) {
+            return (short) Math.round(coerced);
+        }
         return coerced;
+    }
+
+    private static Object copyValue(Object value) {
+        if (value instanceof List) {
+            return new ArrayList<>((List<?>) value);
+        }
+        if (value instanceof Map) {
+            return new java.util.LinkedHashMap<>((Map<?, ?>) value);
+        }
+        if (value instanceof Object[]) {
+            return ((Object[]) value).clone();
+        }
+        if (value instanceof int[]) {
+            return ((int[]) value).clone();
+        }
+        if (value instanceof long[]) {
+            return ((long[]) value).clone();
+        }
+        if (value instanceof float[]) {
+            return ((float[]) value).clone();
+        }
+        if (value instanceof double[]) {
+            return ((double[]) value).clone();
+        }
+        if (value instanceof byte[]) {
+            return ((byte[]) value).clone();
+        }
+        if (value instanceof short[]) {
+            return ((short[]) value).clone();
+        }
+        if (value instanceof char[]) {
+            return ((char[]) value).clone();
+        }
+        if (value instanceof boolean[]) {
+            return ((boolean[]) value).clone();
+        }
+        return value;
+    }
+
+    private static boolean valueEquals(Object left, Object right) {
+        if (left != null && right != null && left.getClass().isArray() && right.getClass().isArray()) {
+            if (left instanceof Object[] && right instanceof Object[]) {
+                return Arrays.deepEquals((Object[]) left, (Object[]) right);
+            }
+            if (left instanceof int[] && right instanceof int[]) {
+                return Arrays.equals((int[]) left, (int[]) right);
+            }
+            if (left instanceof long[] && right instanceof long[]) {
+                return Arrays.equals((long[]) left, (long[]) right);
+            }
+            if (left instanceof float[] && right instanceof float[]) {
+                return Arrays.equals((float[]) left, (float[]) right);
+            }
+            if (left instanceof double[] && right instanceof double[]) {
+                return Arrays.equals((double[]) left, (double[]) right);
+            }
+            if (left instanceof byte[] && right instanceof byte[]) {
+                return Arrays.equals((byte[]) left, (byte[]) right);
+            }
+            if (left instanceof short[] && right instanceof short[]) {
+                return Arrays.equals((short[]) left, (short[]) right);
+            }
+            if (left instanceof char[] && right instanceof char[]) {
+                return Arrays.equals((char[]) left, (char[]) right);
+            }
+            if (left instanceof boolean[] && right instanceof boolean[]) {
+                return Arrays.equals((boolean[]) left, (boolean[]) right);
+            }
+        }
+        return Objects.equals(left, right);
+    }
+
+    private static boolean numericType(Class<?> type) {
+        return type == byte.class || type == Byte.class || type == short.class || type == Short.class
+                || type == int.class || type == Integer.class || type == long.class || type == Long.class
+                || type == float.class || type == Float.class || type == double.class || type == Double.class;
     }
 
     private void notifyListeners(Object oldValue, Object newValue) {

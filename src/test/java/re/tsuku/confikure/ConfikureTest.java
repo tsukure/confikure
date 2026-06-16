@@ -3,8 +3,12 @@ package re.tsuku.confikure;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Rule;
@@ -151,6 +155,130 @@ public final class ConfikureTest {
         assertEquals(1.5D, loaded.movement.speed, 0.0D);
         assertEquals("fancy", loaded.visuals.mode);
         assertEquals(Arrays.asList("two", "one"), loaded.visuals.order);
+    }
+
+    @Test
+    public void loadSkipsMismatchedConfigId() throws Exception {
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("wrong.json").toPath();
+        Files.write(path, Arrays.asList("{", "  \"config\": \"other\",", "  \"categories\": {}", "}"),
+                StandardCharsets.UTF_8);
+
+        ExampleConfig config = new ExampleConfig();
+
+        assertFalse(store.load(Confikure.scan(config), path));
+        assertEquals(1.0D, config.movement.speed, 0.0D);
+    }
+
+    @Test
+    public void loadKeepsDefaultsForInvalidValues() throws Exception {
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("invalid.json").toPath();
+        Files.write(path,
+                Arrays.asList("{", "  \"config\": \"example\",", "  \"categories\": {",
+                        "    \"visuals\": {\"general\": {\"mode\": \"missing\"}},",
+                        "    \"movement\": {\"sprint\": {\"speed\": \"fast\"}}", "  }", "}"),
+                StandardCharsets.UTF_8);
+
+        ExampleConfig config = new ExampleConfig();
+
+        assertTrue(store.load(Confikure.scan(config), path));
+        assertEquals("simple", config.visuals.mode);
+        assertEquals(1.0D, config.movement.speed, 0.0D);
+    }
+
+    @Test
+    public void loadReturnsFalseForCorruptJson() throws Exception {
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("corrupt.json").toPath();
+        Files.write(path, Arrays.asList("{nope"), StandardCharsets.UTF_8);
+
+        assertFalse(store.load(Confikure.scan(new ExampleConfig()), path));
+    }
+
+    @Test
+    public void loadSkipsNullPrimitiveValues() throws Exception {
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("null-primitive.json").toPath();
+        Files.write(path,
+                Arrays.asList("{", "  \"config\": \"example\",",
+                        "  \"categories\": {\"movement\": {\"sprint\": {\"speed\": null}}}", "}"),
+                StandardCharsets.UTF_8);
+
+        ExampleConfig config = new ExampleConfig();
+
+        assertTrue(store.load(Confikure.scan(config), path));
+        assertEquals(1.0D, config.movement.speed, 0.0D);
+    }
+
+    @Test
+    public void rangeStepsAreAnchoredToMinimum() {
+        OffsetRangeConfig config = new OffsetRangeConfig();
+        ConfigOption value = Confikure.scan(config).option("offset");
+
+        value.set(0.24D);
+        assertEquals(0.3D, config.general.offset, 0.0000001D);
+
+        value.set(0.19D);
+        assertEquals(0.1D, config.general.offset, 0.0000001D);
+    }
+
+    @Test
+    public void numericFieldsCoerceWithoutRange() {
+        NumericConfig config = new NumericConfig();
+        ConfigDefinition definition = Confikure.scan(config);
+
+        definition.option("int-value").set(2.8D);
+        definition.option("long-value").set(3.2D);
+        definition.option("float-value").set(1.25D);
+        definition.option("double-value").set(2);
+
+        assertEquals(3, config.general.intValue);
+        assertEquals(3L, config.general.longValue);
+        assertEquals(1.25F, config.general.floatValue, 0.0F);
+        assertEquals(2.0D, config.general.doubleValue, 0.0D);
+    }
+
+    @Test
+    public void mutableListDefaultsAreSnapshotted() {
+        MutableDefaultConfig config = new MutableDefaultConfig();
+        ConfigOption list = Confikure.scan(config).option("entries");
+
+        config.general.entries.add("two");
+
+        assertTrue(list.dirty());
+        list.reset();
+        assertEquals(Arrays.asList("one"), config.general.entries);
+    }
+
+    @Test
+    public void duplicateCategoryIdsFailScan() {
+        try {
+            Confikure.scan(new DuplicateCategoryConfig());
+            fail("expected duplicate category id to fail");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("duplicate category id"));
+        }
+    }
+
+    @Test
+    public void duplicateGroupIdsFailScan() {
+        try {
+            Confikure.scan(new DuplicateGroupConfig());
+            fail("expected duplicate group id to fail");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("duplicate group id"));
+        }
+    }
+
+    @Test
+    public void duplicateOptionIdsFailScan() {
+        try {
+            Confikure.scan(new DuplicateOptionConfig());
+            fail("expected duplicate option id to fail");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(expected.getMessage().contains("duplicate option id"));
+        }
     }
 
     @Test
@@ -351,5 +479,95 @@ public final class ConfikureTest {
         @Option(name = "reset key")
         @Keybind(resetOnClear = true)
         private int resetKey = 54;
+    }
+
+    @Config(name = "offset range")
+    private static final class OffsetRangeConfig {
+        @Category(name = "general")
+        private final OffsetRange general = new OffsetRange();
+    }
+
+    private static final class OffsetRange {
+        @Option(name = "offset")
+        @Range(min = 0.1D, max = 1.0D, step = 0.2D)
+        private double offset = 0.1D;
+    }
+
+    @Config(name = "numeric")
+    private static final class NumericConfig {
+        @Category(name = "general")
+        private final Numeric general = new Numeric();
+    }
+
+    private static final class Numeric {
+        @Option(name = "int value")
+        private int intValue = 1;
+
+        @Option(name = "long value")
+        private long longValue = 1L;
+
+        @Option(name = "float value")
+        private float floatValue = 1.0F;
+
+        @Option(name = "double value")
+        private double doubleValue = 1.0D;
+    }
+
+    @Config(name = "mutable default")
+    private static final class MutableDefaultConfig {
+        @Category(name = "general")
+        private final MutableDefault general = new MutableDefault();
+    }
+
+    private static final class MutableDefault {
+        @Option(name = "entries")
+        private List<String> entries = new ArrayList<String>(Arrays.asList("one"));
+    }
+
+    @Config(name = "duplicate category")
+    private static final class DuplicateCategoryConfig {
+        @Category(name = "general")
+        private final Object first = new Empty();
+
+        @Category(name = "general!")
+        private final Object second = new Empty();
+    }
+
+    @Config(name = "duplicate group")
+    private static final class DuplicateGroupConfig {
+        @Category(name = "general")
+        private final DuplicateGroups general = new DuplicateGroups();
+    }
+
+    private static final class DuplicateGroups {
+        @Group(name = "feature")
+        private final SingleOption first = new SingleOption();
+
+        @Group(name = "feature!")
+        private final SingleOption second = new SingleOption();
+    }
+
+    @Config(name = "duplicate option")
+    private static final class DuplicateOptionConfig {
+        @Category(name = "general")
+        private final DuplicateOptions general = new DuplicateOptions();
+    }
+
+    private static final class DuplicateOptions {
+        @Option(name = "enabled")
+        private boolean first = true;
+
+        @Option(name = "enabled!")
+        private boolean second = false;
+    }
+
+    private static final class SingleOption {
+        @Option(name = "enabled")
+        private boolean enabled = true;
+    }
+
+    private static final class Empty {
+        @Option(name = "enabled")
+        private boolean enabled = true;
     }
 }

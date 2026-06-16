@@ -6,6 +6,12 @@ public final class NumberRange {
     private final double step;
 
     public NumberRange(double min, double max, double step) {
+        if (max < min) {
+            throw new IllegalArgumentException("range max cannot be less than min");
+        }
+        if (step < 0.0D) {
+            throw new IllegalArgumentException("range step cannot be negative");
+        }
         this.min = min;
         this.max = max;
         this.step = step;
@@ -25,8 +31,8 @@ public final class NumberRange {
 
     public double coerce(double value) {
         double coerced = Math.max(min, Math.min(max, value));
-        if (step > 0.0D) {
-            coerced = Math.round(coerced / step) * step;
+        if (step > 0.0D && Double.isFinite(min)) {
+            coerced = min + Math.round((coerced - min) / step) * step;
         }
         return Math.max(min, Math.min(max, coerced));
     }

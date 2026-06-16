@@ -70,9 +70,17 @@ public final class ConfigStore {
         }
         Map<String, Object> root;
         try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-            root = JSON.parseObject(reader, MAP_TYPE);
+            try {
+                root = JSON.parseObject(reader, MAP_TYPE);
+            } catch (RuntimeException exception) {
+                return false;
+            }
         }
         if (root == null) {
+            return false;
+        }
+        Object configId = root.get("config");
+        if (configId != null && !definition.id().equals(String.valueOf(configId))) {
             return false;
         }
         Object categoriesValue = root.get("categories");
@@ -101,10 +109,17 @@ public final class ConfigStore {
                         continue;
                     }
                     if (options.containsKey(option.id())) {
-                        option.set(readValue(option, options.get(option.id())));
+                        loadOption(option, options.get(option.id()));
                     }
                 }
             }
+        }
+    }
+
+    private static void loadOption(ConfigOption option, Object value) {
+        try {
+            option.set(readValue(option, value));
+        } catch (RuntimeException ignored) {
         }
     }
 

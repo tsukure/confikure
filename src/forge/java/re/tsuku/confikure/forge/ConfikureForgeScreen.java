@@ -18,6 +18,7 @@ public final class ConfikureForgeScreen extends GuiScreen {
     private final ConfigStore store;
     private ConfigGui gui;
     private ForgeGuiRenderer renderer;
+    private boolean loaded;
 
     public ConfikureForgeScreen(ConfigDefinition definition) {
         this(definition, null, null);
@@ -39,9 +40,10 @@ public final class ConfikureForgeScreen extends GuiScreen {
         });
         renderer = new ForgeGuiRenderer(mc);
         Keyboard.enableRepeatEvents(true);
-        if (path != null) {
+        if (path != null && !loaded) {
             try {
                 store.load(definition, path);
+                loaded = true;
             } catch (IOException exception) {
                 throw new IllegalStateException("unable to load config: " + path, exception);
             }
