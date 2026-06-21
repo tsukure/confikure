@@ -8,17 +8,17 @@ import re.tsuku.confikure.forge.internal.event.EventPhase;
 import re.tsuku.confikure.forge.internal.event.GameTickEvent;
 import re.tsuku.fastbus.Subscribe;
 
-public final class DelayedTasks {
-    private static final DelayedTasks INSTANCE = new DelayedTasks();
+public final class DelayedTaskHandler {
+    private static final DelayedTaskHandler INSTANCE = new DelayedTaskHandler();
 
     private final List<DelayedTask> tasks = new ArrayList<>();
     private final List<DelayedTask> pendingTasks = new ArrayList<>();
     private boolean ticking;
 
-    DelayedTasks() {
+    DelayedTaskHandler() {
     }
 
-    public static DelayedTasks get() {
+    public static DelayedTaskHandler get() {
         return INSTANCE;
     }
 

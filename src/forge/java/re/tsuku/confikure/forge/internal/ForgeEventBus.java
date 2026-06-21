@@ -7,10 +7,10 @@ import re.tsuku.confikure.forge.internal.event.ScreenOpenEvent;
 import re.tsuku.fastbus.Event;
 import re.tsuku.fastbus.FastBus;
 
-public final class Events {
+public final class ForgeEventBus {
     private static final FastBus BUS = new FastBus();
 
-    private Events() {
+    private ForgeEventBus() {
     }
 
     public static void subscribe(Object listener) {

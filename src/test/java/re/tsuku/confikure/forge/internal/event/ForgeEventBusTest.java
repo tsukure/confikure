@@ -3,19 +3,19 @@ package re.tsuku.confikure.forge.internal.event;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import re.tsuku.confikure.forge.internal.Events;
+import re.tsuku.confikure.forge.internal.ForgeEventBus;
 import re.tsuku.fastbus.Subscribe;
 
-public final class EventsTest {
+public final class ForgeEventBusTest {
     @Test
     public void postsEventsToSubscribedListeners() {
         TickListener listener = new TickListener();
-        Events.subscribe(listener);
+        ForgeEventBus.subscribe(listener);
         try {
-            Events.postTick(EventPhase.PRE);
+            ForgeEventBus.postTick(EventPhase.PRE);
             assertEquals(1, listener.ticks);
         } finally {
-            Events.unsubscribe(listener);
+            ForgeEventBus.unsubscribe(listener);
         }
     }
 

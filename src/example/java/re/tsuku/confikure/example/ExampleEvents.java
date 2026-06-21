@@ -5,6 +5,6 @@ import re.tsuku.fastbus.Subscribe;
 final class ExampleEvents {
     @Subscribe
     private void onThemeChanged(ThemeChangedEvent event) {
-        System.out.println("[confikure-example] theme changed from " + event.oldTheme() + " to " + event.newTheme());
+        ExampleMod.LOGGER.info("theme changed from {} to {}", event.oldTheme(), event.newTheme());
     }
 }

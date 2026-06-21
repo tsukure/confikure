@@ -7,10 +7,10 @@ import org.junit.Test;
 import re.tsuku.confikure.forge.internal.event.EventPhase;
 import re.tsuku.confikure.forge.internal.event.GameTickEvent;
 
-public final class DelayedTasksTest {
+public final class DelayedTaskHandlerTest {
     @Test
     public void runsTasksAfterRequestedPreTicks() {
-        DelayedTasks handler = new DelayedTasks();
+        DelayedTaskHandler handler = new DelayedTaskHandler();
         final int[] runs = {0};
 
         handler.scheduleTask(1, () -> runs[0]++);
@@ -30,7 +30,7 @@ public final class DelayedTasksTest {
 
     @Test
     public void zeroTickTasksRunOnNextPreTick() {
-        DelayedTasks handler = new DelayedTasks();
+        DelayedTaskHandler handler = new DelayedTaskHandler();
         final int[] runs = {0};
 
         handler.scheduleTask(0, () -> runs[0]++);
@@ -41,7 +41,7 @@ public final class DelayedTasksTest {
 
     @Test
     public void defersTasksScheduledWhileTicking() {
-        DelayedTasks handler = new DelayedTasks();
+        DelayedTaskHandler handler = new DelayedTaskHandler();
         final int[] runs = {0};
 
         handler.scheduleTask(0, () -> {
@@ -58,7 +58,7 @@ public final class DelayedTasksTest {
 
     @Test
     public void rejectsInvalidTasks() {
-        DelayedTasks handler = new DelayedTasks();
+        DelayedTaskHandler handler = new DelayedTaskHandler();
 
         assertThrows(IllegalArgumentException.class, () -> handler.scheduleTask(-1, () -> {
         }));

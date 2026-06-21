@@ -50,23 +50,8 @@ loom {
 sourceSets {
     main {
         java.srcDir("src/forge/java")
-        output.setResourcesDir(java.classesDirectory)
-    }
-    create("example") {
         java.srcDir("src/example/java")
-        compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
-        runtimeClasspath += output + compileClasspath
-    }
-}
-
-configurations.named("exampleImplementation") {
-    extendsFrom(configurations.implementation.get())
-}
-
-idea {
-    module {
-        sourceDirs.add(file("src/example/java"))
-        scopes["RUNTIME"]!!["plus"]!!.add(configurations["exampleRuntimeClasspath"])
+        output.setResourcesDir(java.classesDirectory)
     }
 }
 
@@ -109,6 +94,7 @@ tasks {
         archiveBaseName.set("confikure")
         archiveClassifier.set("without-deps")
         destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
+        exclude("re/tsuku/confikure/example/**")
         manifest.attributes(
             "FMLCorePluginContainsFMLMod" to "true",
             "ForceLoadAsMod" to "true",
@@ -121,6 +107,7 @@ tasks {
         destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
         archiveClassifier.set("non-obfuscated-with-deps")
         configurations = listOf(shade)
+        exclude("re/tsuku/confikure/example/**")
         exclude("META-INF/maven/com.alibaba.fastjson2/**")
         exclude("META-INF/native-image/com.alibaba.fastjson2/**")
         exclude("META-INF/proguard/fastjson2.pro")
@@ -167,11 +154,7 @@ tasks {
 
 tasks.named<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
-}
-
-tasks.named<JavaExec>("runClient") {
-    dependsOn(tasks.named("exampleClasses"))
-    classpath += sourceSets["example"].runtimeClasspath
+    exclude("re/tsuku/confikure/example/**")
 }
 
 spotless {

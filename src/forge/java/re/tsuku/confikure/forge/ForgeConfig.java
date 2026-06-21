@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import re.tsuku.confikure.Confikure;
-import re.tsuku.confikure.forge.internal.Events;
-import re.tsuku.confikure.forge.internal.task.DelayedTasks;
+import re.tsuku.confikure.forge.internal.ForgeEventBus;
+import re.tsuku.confikure.forge.internal.task.DelayedTaskHandler;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.persistence.ConfigStore;
@@ -24,7 +24,7 @@ public final class ForgeConfig {
         if (initialized) {
             return;
         }
-        Events.subscribe(DelayedTasks.get());
+        ForgeEventBus.subscribe(DelayedTaskHandler.get());
         initialized = true;
     }
 
@@ -59,7 +59,7 @@ public final class ForgeConfig {
 
     public static void open(Object config) {
         init();
-        DelayedTasks.schedule(0, () -> openNow(screen(config)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config)));
     }
 
     public static void open(Object config, File file) {
@@ -68,7 +68,7 @@ public final class ForgeConfig {
 
     public static void open(Object config, Path path) {
         init();
-        DelayedTasks.schedule(0, () -> openNow(screen(config, path)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config, path)));
     }
 
     public static void open(Object config, File file, Consumer<ConfigGui> configurator) {
@@ -77,17 +77,17 @@ public final class ForgeConfig {
 
     public static void open(Object config, Path path, Consumer<ConfigGui> configurator) {
         init();
-        DelayedTasks.schedule(0, () -> openNow(screen(config, path, configurator)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config, path, configurator)));
     }
 
     public static void open(ForgeConfigScreen screen) {
         init();
-        DelayedTasks.schedule(0, () -> openNow(screen));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen));
     }
 
     public static void openNow(ForgeConfigScreen screen) {
         init();
-        Events.postScreenOpen(screen);
+        ForgeEventBus.postScreenOpen(screen);
         Minecraft.getMinecraft().displayGuiScreen(screen);
     }
 }
