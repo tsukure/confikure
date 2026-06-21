@@ -4,7 +4,6 @@ import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import re.tsuku.confikure.Confikure;
 import re.tsuku.confikure.annotations.Button;
 import re.tsuku.confikure.annotations.Category;
 import re.tsuku.confikure.annotations.Color;
@@ -18,6 +17,7 @@ import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
 import re.tsuku.confikure.forge.ConfikureForge;
+import re.tsuku.confikure.forge.event.ConfikureEvents;
 
 @Mod(modid = "confikure-dev", name = "confikure dev", version = "dev", clientSideOnly = true)
 public final class ConfikureDevMod {
@@ -26,7 +26,7 @@ public final class ConfikureDevMod {
     @EventHandler
     public void init(FMLInitializationEvent event) {
         ConfikureForge.init();
-        Confikure.eventBus().subscribe(new DevEventListener());
+        ConfikureEvents.subscribe(new DevEventListener());
         ClientCommandHandler.instance.registerCommand(new ConfikureDevCommand(CONFIG));
     }
 

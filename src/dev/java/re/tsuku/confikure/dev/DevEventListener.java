@@ -8,10 +8,4 @@ final class DevEventListener {
     private void onScreenOpen(ConfikureScreenOpenEvent event) {
         System.out.println("[confikure-dev] opened " + event.screen().getClass().getSimpleName());
     }
-
-    @Subscribe
-    private void onOptionChanged(DevOptionChangedEvent event) {
-        System.out.println("[confikure-dev] changed " + event.optionId() + " from " + event.oldValue() + " to "
-                + event.newValue());
-    }
 }

@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import re.tsuku.confikure.Confikure;
-import re.tsuku.confikure.forge.event.ConfikureScreenOpenEvent;
+import re.tsuku.confikure.forge.event.ConfikureEvents;
 import re.tsuku.confikure.forge.task.DelayedTaskHandler;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.model.ConfigDefinition;
@@ -23,7 +23,7 @@ public final class ConfikureForge {
         if (initialized) {
             return;
         }
-        Confikure.eventBus().subscribe(DelayedTaskHandler.get());
+        ConfikureEvents.subscribe(DelayedTaskHandler.get());
         initialized = true;
     }
 
@@ -46,27 +46,27 @@ public final class ConfikureForge {
 
     public static void open(Object config) {
         init();
-        DelayedTaskHandler.schedule(1, () -> openNow(screen(config)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config)));
     }
 
     public static void open(Object config, Path path) {
         init();
-        DelayedTaskHandler.schedule(1, () -> openNow(screen(config, path)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config, path)));
     }
 
     public static void open(Object config, Path path, Consumer<ConfigGui> configurator) {
         init();
-        DelayedTaskHandler.schedule(1, () -> openNow(screen(config, path, configurator)));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen(config, path, configurator)));
     }
 
     public static void open(ConfikureForgeScreen screen) {
         init();
-        DelayedTaskHandler.schedule(1, () -> openNow(screen));
+        DelayedTaskHandler.schedule(0, () -> openNow(screen));
     }
 
     public static void openNow(ConfikureForgeScreen screen) {
         init();
-        Confikure.eventBus().post(new ConfikureScreenOpenEvent(screen));
+        ConfikureEvents.postScreenOpen(screen);
         Minecraft.getMinecraft().displayGuiScreen(screen);
     }
 }

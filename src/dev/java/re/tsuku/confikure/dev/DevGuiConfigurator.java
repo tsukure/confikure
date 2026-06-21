@@ -2,7 +2,6 @@ package re.tsuku.confikure.dev;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import re.tsuku.confikure.Confikure;
 import re.tsuku.confikure.gui.ConfigColorScheme;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.gui.ConfigTheme;
@@ -40,8 +39,8 @@ final class DevGuiConfigurator implements Consumer<ConfigGui> {
         }
         ConfigOption scheme = gui.definition().option("theme-scheme");
         if (scheme != null) {
-            scheme.addListener((option, oldValue, newValue) -> Confikure.eventBus()
-                    .post(new DevOptionChangedEvent(option.id(), oldValue, newValue)));
+            scheme.addListener((option, oldValue, newValue) -> System.out
+                    .println("[confikure-dev] changed " + option.id() + " from " + oldValue + " to " + newValue));
         }
     }
 
