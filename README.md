@@ -21,10 +21,21 @@ repositories {
     maven("https://maven.tsuku.re/releases")
 }
 
+val shadowModImpl by configurations.creating {
+    configurations.modImplementation.get().extendsFrom(this)
+}
+
 dependencies {
-    implementation("re.tsuku:confikure:1.0.0")
+    shadowModImpl("re.tsuku:confikure:1.0.0")
+}
+
+tasks.shadowJar {
+    configurations = listOf(shadowModImpl)
+    relocate("re.tsuku.confikure", "your.mod.deps.confikure")
 }
 ```
+
+confikure is intended to be shaded into your mod. relocation is recommended so multiple mods can ship different confikure versions in the same game installation.
 
 for snapshots, use:
 

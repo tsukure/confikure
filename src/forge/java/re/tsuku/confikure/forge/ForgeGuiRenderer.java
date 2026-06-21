@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
@@ -22,6 +23,17 @@ public final class ForgeGuiRenderer implements GuiRenderer {
 
     public void fill(int left, int top, int right, int bottom, int color) {
         Gui.drawRect(left, top, right, bottom, color);
+    }
+
+    public void blendedFill(int left, int top, int right, int bottom, int color) {
+        boolean alphaTest = GL11.glIsEnabled(GL11.GL_ALPHA_TEST);
+        if (alphaTest) {
+            GlStateManager.disableAlpha();
+        }
+        fill(left, top, right, bottom, color);
+        if (alphaTest) {
+            GlStateManager.enableAlpha();
+        }
     }
 
     public void text(String text, int x, int y, int color) {

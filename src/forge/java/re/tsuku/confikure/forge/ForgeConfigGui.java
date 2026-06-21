@@ -2,6 +2,7 @@ package re.tsuku.confikure.forge;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
@@ -28,7 +29,7 @@ public final class ForgeConfigGui {
 
     public ForgeConfigGui(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
-        this.definition = definition;
+        this.definition = Objects.requireNonNull(definition, "definition");
         this.path = path;
         this.store = store == null ? new ConfigStore() : store;
         this.configurator = configurator;
@@ -39,6 +40,7 @@ public final class ForgeConfigGui {
     }
 
     public void init(Minecraft minecraft) {
+        Objects.requireNonNull(minecraft, "minecraft");
         gui = new ConfigGui(definition);
         gui.keyNameProvider(new ConfigGui.KeyNameProvider() {
             public String name(int keyCode) {

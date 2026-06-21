@@ -2,6 +2,7 @@ package re.tsuku.confikure.forge;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Mouse;
@@ -25,7 +26,7 @@ public final class ForgeConfigScreen extends GuiScreen {
 
     public ForgeConfigScreen(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
-        this.gui = new ForgeConfigGui(definition, path, store, configurator);
+        this.gui = new ForgeConfigGui(Objects.requireNonNull(definition, "definition"), path, store, configurator);
     }
 
     public void initGui() {

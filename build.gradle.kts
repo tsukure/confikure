@@ -24,12 +24,6 @@ java {
 }
 
 loom {
-    launchConfigs {
-        "client" {
-            property("mixin.debug", "true")
-            arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
-        }
-    }
     runConfigs {
         "client" {
             if (SystemUtils.IS_OS_MAC_OSX) {
@@ -40,10 +34,6 @@ loom {
     }
     forge {
         pack200Provider.set(Pack200Adapter())
-        mixinConfig("mixins.confikure.json")
-    }
-    mixin {
-        defaultRefmapName.set("mixins.confikure.refmap.json")
     }
 }
 
@@ -57,7 +47,6 @@ sourceSets {
 
 repositories {
     mavenCentral()
-    maven("https://repo.spongepowered.org/maven/")
     maven("https://maven.minecraftforge.net/")
     maven("https://maven.tsuku.re/releases")
 }
@@ -72,11 +61,7 @@ dependencies {
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
 
     shade("com.alibaba.fastjson2:fastjson2:2.0.62")
-    shade("re.tsuku:fastbus:1.1.1")
-    shade("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
-        isTransitive = false
-    }
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
+    implementation("re.tsuku:fastbus:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
 }
@@ -95,12 +80,6 @@ tasks {
         archiveClassifier.set("without-deps")
         destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
         exclude("re/tsuku/confikure/example/**")
-        manifest.attributes(
-            "FMLCorePluginContainsFMLMod" to "true",
-            "ForceLoadAsMod" to "true",
-            "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
-            "MixinConfigs" to "mixins.confikure.json",
-        )
     }
 
     shadowJar {
@@ -114,13 +93,6 @@ tasks {
         exclude("META-INF/scm/com.alibaba.fastjson2/**")
 
         relocate("com.alibaba.fastjson2", "re.tsuku.confikure.deps.fastjson2")
-        relocate("re.tsuku.fastbus", "re.tsuku.confikure.deps.fastbus")
-        manifest.attributes(
-            "FMLCorePluginContainsFMLMod" to "true",
-            "ForceLoadAsMod" to "true",
-            "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
-            "MixinConfigs" to "mixins.confikure.json",
-        )
     }
 
     val remapJar = named<RemapJarTask>("remapJar") {

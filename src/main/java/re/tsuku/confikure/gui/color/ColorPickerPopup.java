@@ -101,8 +101,8 @@ public final class ColorPickerPopup {
         GuiPrimitives.frame(renderer, theme, preview);
         renderer.fill(preview.x + 3, preview.y + 3, preview.x + preview.width - 3, preview.y + preview.height - 3,
                 theme.slot);
-        renderer.fill(preview.x + 4, preview.y + 4, preview.x + preview.width - 4, preview.y + preview.height - 4,
-                color);
+        renderer.blendedFill(preview.x + 4, preview.y + 4, preview.x + preview.width - 4,
+                preview.y + preview.height - 4, color);
 
         GuiBounds hex = hexBounds(picker);
         host.drawTextField(renderer, hex, host.displayValue(option), host.textCursor(option),
@@ -153,10 +153,10 @@ public final class ColorPickerPopup {
             applyState(option, state.hue, clamp((mouseX - square.x) / (float) SQUARE_WIDTH),
                     1.0F - clamp((mouseY - square.y) / (float) HEIGHT), color(option) >>> 24 & 0xFF);
         } else if (drag == Drag.HUE) {
-            applyState(option, clamp((mouseY - square.y) / (float) HEIGHT), state.saturation, state.value,
+            applyState(option, clamp((mouseY - hue.y) / (float) hue.height), state.saturation, state.value,
                     color(option) >>> 24 & 0xFF);
         } else if (drag == Drag.ALPHA) {
-            int alphaValue = Math.round(clamp((mouseY - square.y) / (float) HEIGHT) * 255.0F);
+            int alphaValue = Math.round(clamp((mouseY - alpha.y) / (float) alpha.height) * 255.0F);
             option.set((alphaValue << 24) | (color(option) & 0x00FFFFFF));
             state.lastColor = color(option);
         }
@@ -302,7 +302,7 @@ public final class ColorPickerPopup {
         int rgb = color & 0x00FFFFFF;
         for (int offset = 0; offset < HEIGHT; offset += 2) {
             int alpha = Math.round(offset / (float) HEIGHT * 255.0F);
-            renderer.fill(x, y + offset, x + TRACK_WIDTH, y + offset + 2, (alpha << 24) | rgb);
+            renderer.blendedFill(x, y + offset, x + TRACK_WIDTH, y + offset + 2, (alpha << 24) | rgb);
         }
     }
 
