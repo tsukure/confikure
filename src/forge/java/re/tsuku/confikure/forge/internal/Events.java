@@ -1,15 +1,16 @@
-package re.tsuku.confikure.forge.event;
+package re.tsuku.confikure.forge.internal;
 
-import re.tsuku.confikure.event.EventPhase;
-import re.tsuku.confikure.event.GameTickEvent;
-import re.tsuku.confikure.forge.ConfikureForgeScreen;
+import re.tsuku.confikure.forge.ForgeConfigScreen;
+import re.tsuku.confikure.forge.internal.event.EventPhase;
+import re.tsuku.confikure.forge.internal.event.GameTickEvent;
+import re.tsuku.confikure.forge.internal.event.ScreenOpenEvent;
 import re.tsuku.fastbus.Event;
 import re.tsuku.fastbus.FastBus;
 
-public final class ConfikureEvents {
+public final class Events {
     private static final FastBus BUS = new FastBus();
 
-    private ConfikureEvents() {
+    private Events() {
     }
 
     public static void subscribe(Object listener) {
@@ -24,8 +25,8 @@ public final class ConfikureEvents {
         post(new GameTickEvent(phase));
     }
 
-    public static void postScreenOpen(ConfikureForgeScreen screen) {
-        post(new ConfikureScreenOpenEvent(screen));
+    public static void postScreenOpen(ForgeConfigScreen screen) {
+        post(new ScreenOpenEvent(screen));
     }
 
     static void post(Event event) {

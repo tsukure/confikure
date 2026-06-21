@@ -12,20 +12,20 @@ import re.tsuku.confikure.persistence.ConfigStore;
 /**
  * forge 1.8.9 screen wrapper for a scanned confikure config.
  */
-public final class ConfikureForgeScreen extends GuiScreen {
-    private final ConfikureForgeGui gui;
+public final class ForgeConfigScreen extends GuiScreen {
+    private final ForgeConfigGui gui;
 
-    public ConfikureForgeScreen(ConfigDefinition definition) {
+    public ForgeConfigScreen(ConfigDefinition definition) {
         this(definition, null, null);
     }
 
-    public ConfikureForgeScreen(ConfigDefinition definition, Path path, ConfigStore store) {
+    public ForgeConfigScreen(ConfigDefinition definition, Path path, ConfigStore store) {
         this(definition, path, store, null);
     }
 
-    public ConfikureForgeScreen(ConfigDefinition definition, Path path, ConfigStore store,
+    public ForgeConfigScreen(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
-        this.gui = new ConfikureForgeGui(definition, path, store, configurator);
+        this.gui = new ForgeConfigGui(definition, path, store, configurator);
     }
 
     public void initGui() {

@@ -1,22 +1,21 @@
-package re.tsuku.confikure.forge.event;
+package re.tsuku.confikure.forge.internal.event;
 
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import re.tsuku.confikure.event.EventPhase;
-import re.tsuku.confikure.event.GameTickEvent;
+import re.tsuku.confikure.forge.internal.Events;
 import re.tsuku.fastbus.Subscribe;
 
-public final class ConfikureEventsTest {
+public final class EventsTest {
     @Test
     public void postsEventsToSubscribedListeners() {
         TickListener listener = new TickListener();
-        ConfikureEvents.subscribe(listener);
+        Events.subscribe(listener);
         try {
-            ConfikureEvents.postTick(EventPhase.PRE);
+            Events.postTick(EventPhase.PRE);
             assertEquals(1, listener.ticks);
         } finally {
-            ConfikureEvents.unsubscribe(listener);
+            Events.unsubscribe(listener);
         }
     }
 

@@ -1,4 +1,4 @@
-package re.tsuku.confikure.dev;
+package re.tsuku.confikure.example;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -9,45 +9,55 @@ import re.tsuku.confikure.gui.GuiBounds;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.OptionCondition;
+import re.tsuku.fastbus.FastBus;
 
-final class DevGuiConfigurator implements Consumer<ConfigGui> {
+final class ExampleGui implements Consumer<ConfigGui> {
     private static final String[] READ_ONLY_OPTIONS = {"read-only-switch", "read-only-slider",
             "read-only-dropdown", "read-only-mode", "read-only-keybind", "read-only-color"};
 
-    private final ConfikureDevMod.DevConfig config;
+    private final ExampleConfig config;
+    private final FastBus events;
 
-    DevGuiConfigurator(ConfikureDevMod.DevConfig config) {
+    ExampleGui(ExampleConfig config, FastBus events) {
         this.config = config;
+        this.events = events;
     }
 
     public void accept(ConfigGui gui) {
         gui.themeSupplier(new SchemeThemeSupplier(config));
-        gui.sidebarHeader(new DevSidebarHeader());
-        configureDevOptions(gui);
+        gui.sidebarHeader(new ExampleSidebarHeader());
+        configureVisibility(gui);
+        configureReadOnlyOptions(gui);
+        configureEvents(gui);
     }
 
-    private void configureDevOptions(ConfigGui gui) {
+    private void configureVisibility(ConfigGui gui) {
         ConfigOption dependentDensity = gui.definition().option("dependent-density");
         if (dependentDensity != null) {
             dependentDensity.visibleWhen(new DependentDensityVisibleCondition(config));
         }
+    }
+
+    private void configureReadOnlyOptions(ConfigGui gui) {
         for (int i = 0; i < READ_ONLY_OPTIONS.length; i++) {
             ConfigOption option = gui.definition().option(READ_ONLY_OPTIONS[i]);
             if (option != null) {
                 option.enabledWhen(DisabledOptionCondition.INSTANCE);
             }
         }
+    }
+
+    private void configureEvents(ConfigGui gui) {
         ConfigOption scheme = gui.definition().option("theme-scheme");
         if (scheme != null) {
-            scheme.addListener((option, oldValue, newValue) -> System.out
-                    .println("[confikure-dev] changed " + option.id() + " from " + oldValue + " to " + newValue));
+            scheme.addListener((option, oldValue, newValue) -> events.post(new ThemeChangedEvent(oldValue, newValue)));
         }
     }
 
     private static final class SchemeThemeSupplier implements Supplier<ConfigTheme> {
-        private final ConfikureDevMod.DevConfig config;
+        private final ExampleConfig config;
 
-        private SchemeThemeSupplier(ConfikureDevMod.DevConfig config) {
+        private SchemeThemeSupplier(ExampleConfig config) {
             this.config = config;
         }
 
@@ -56,17 +66,17 @@ final class DevGuiConfigurator implements Consumer<ConfigGui> {
         }
     }
 
-    private static final class DevSidebarHeader implements ConfigGui.SidebarHeader {
+    private static final class ExampleSidebarHeader implements ConfigGui.SidebarHeader {
         public void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme) {
             renderer.text("confikure", bounds.x, bounds.y, theme.text);
-            renderer.text("dev preview", bounds.x, bounds.y + 12, theme.mutedText);
+            renderer.text("example mod", bounds.x, bounds.y + 12, theme.mutedText);
         }
     }
 
     private static final class DependentDensityVisibleCondition implements OptionCondition {
-        private final ConfikureDevMod.DevConfig config;
+        private final ExampleConfig config;
 
-        private DependentDensityVisibleCondition(ConfikureDevMod.DevConfig config) {
+        private DependentDensityVisibleCondition(ExampleConfig config) {
             this.config = config;
         }
 

@@ -50,8 +50,23 @@ loom {
 sourceSets {
     main {
         java.srcDir("src/forge/java")
-        java.srcDir("src/dev/java")
         output.setResourcesDir(java.classesDirectory)
+    }
+    create("example") {
+        java.srcDir("src/example/java")
+        compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations.named("exampleImplementation") {
+    extendsFrom(configurations.implementation.get())
+}
+
+idea {
+    module {
+        sourceDirs.add(file("src/example/java"))
+        scopes["RUNTIME"]!!["plus"]!!.add(configurations["exampleRuntimeClasspath"])
     }
 }
 
@@ -94,7 +109,6 @@ tasks {
         archiveBaseName.set("confikure")
         archiveClassifier.set("without-deps")
         destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
-        exclude("re/tsuku/confikure/dev/**")
         manifest.attributes(
             "FMLCorePluginContainsFMLMod" to "true",
             "ForceLoadAsMod" to "true",
@@ -107,7 +121,6 @@ tasks {
         destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
         archiveClassifier.set("non-obfuscated-with-deps")
         configurations = listOf(shade)
-        exclude("re/tsuku/confikure/dev/**")
         exclude("META-INF/maven/com.alibaba.fastjson2/**")
         exclude("META-INF/native-image/com.alibaba.fastjson2/**")
         exclude("META-INF/proguard/fastjson2.pro")
@@ -131,7 +144,7 @@ tasks {
 
     val releaseSourcesJar = register("releaseSourcesJar") {
         group = LifecycleBasePlugin.BUILD_GROUP
-        description = "Copies the source jar without dev-only sources into the release artifact name."
+        description = "Copies the release source jar into the published artifact name."
         val input = layout.buildDirectory.file("libs/confikure-${project.version}-sources-dev.jar")
         val output = layout.buildDirectory.file("libs/confikure-${project.version}-sources.jar")
         dependsOn(named("sourcesJar"))
@@ -154,7 +167,11 @@ tasks {
 
 tasks.named<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
-    exclude("re/tsuku/confikure/dev/**")
+}
+
+tasks.named<JavaExec>("runClient") {
+    dependsOn(tasks.named("exampleClasses"))
+    classpath += sourceSets["example"].runtimeClasspath
 }
 
 spotless {

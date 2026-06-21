@@ -1,24 +1,24 @@
-package re.tsuku.confikure.forge.task;
+package re.tsuku.confikure.forge.internal.task;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import re.tsuku.confikure.event.EventPhase;
-import re.tsuku.confikure.event.GameTickEvent;
+import re.tsuku.confikure.forge.internal.event.EventPhase;
+import re.tsuku.confikure.forge.internal.event.GameTickEvent;
 import re.tsuku.fastbus.Subscribe;
 
-public final class DelayedTaskHandler {
-    private static final DelayedTaskHandler INSTANCE = new DelayedTaskHandler();
+public final class DelayedTasks {
+    private static final DelayedTasks INSTANCE = new DelayedTasks();
 
     private final List<DelayedTask> tasks = new ArrayList<>();
     private final List<DelayedTask> pendingTasks = new ArrayList<>();
     private boolean ticking;
 
-    DelayedTaskHandler() {
+    DelayedTasks() {
     }
 
-    public static DelayedTaskHandler get() {
+    public static DelayedTasks get() {
         return INSTANCE;
     }
 

@@ -1,4 +1,4 @@
-package re.tsuku.confikure.event;
+package re.tsuku.confikure.forge.internal.event;
 
 import re.tsuku.fastbus.Event;
 

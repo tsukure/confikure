@@ -13,7 +13,7 @@ import re.tsuku.confikure.persistence.ConfigStore;
 /**
  * forge 1.8.9 adapter for embedding a {@link ConfigGui} inside any screen.
  */
-public final class ConfikureForgeGui {
+public final class ForgeConfigGui {
     private final ConfigDefinition definition;
     private final Path path;
     private final ConfigStore store;
@@ -22,11 +22,11 @@ public final class ConfikureForgeGui {
     private ForgeGuiRenderer renderer;
     private boolean loaded;
 
-    public ConfikureForgeGui(ConfigDefinition definition, Path path, ConfigStore store) {
+    public ForgeConfigGui(ConfigDefinition definition, Path path, ConfigStore store) {
         this(definition, path, store, null);
     }
 
-    public ConfikureForgeGui(ConfigDefinition definition, Path path, ConfigStore store,
+    public ForgeConfigGui(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
         this.definition = definition;
         this.path = path;

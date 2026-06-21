@@ -1,9 +1,5 @@
-package re.tsuku.confikure.dev;
+package re.tsuku.confikure.example;
 
-import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import re.tsuku.confikure.annotations.Button;
 import re.tsuku.confikure.annotations.Category;
 import re.tsuku.confikure.annotations.Color;
@@ -16,28 +12,14 @@ import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
-import re.tsuku.confikure.forge.ConfikureForge;
-import re.tsuku.confikure.forge.event.ConfikureEvents;
 
-@Mod(modid = "confikure-dev", name = "confikure dev", version = "dev", clientSideOnly = true)
-public final class ConfikureDevMod {
-    private static final DevConfig CONFIG = new DevConfig();
+@Config(name = "confikure example", id = "confikure-example", description = "example mod config")
+public final class ExampleConfig {
+    @Category(name = "general", order = 0)
+    public final General general = new General();
 
-    @EventHandler
-    public void init(FMLInitializationEvent event) {
-        ConfikureForge.init();
-        ConfikureEvents.subscribe(new DevEventListener());
-        ClientCommandHandler.instance.registerCommand(new ConfikureDevCommand(CONFIG));
-    }
-
-    @Config(name = "confikure dev", id = "confikure-dev", description = "local development config")
-    public static final class DevConfig {
-        @Category(name = "general", order = 0)
-        public final General general = new General();
-
-        @Category(name = "visuals", order = 1)
-        public final Visuals visuals = new Visuals();
-    }
+    @Category(name = "visuals", order = 1)
+    public final Visuals visuals = new Visuals();
 
     public static final class General {
         @Group(name = "feature", description = "basic toggles and selectors", order = 0)
@@ -170,6 +152,5 @@ public final class ConfikureDevMod {
         @Option(name = "read only color", description = "disabled color example", order = 6)
         @Color(alpha = false)
         public int readOnlyColor = 0xFFAA8844;
-
     }
 }

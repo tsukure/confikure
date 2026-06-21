@@ -1,4 +1,4 @@
-package re.tsuku.confikure.forge.task;
+package re.tsuku.confikure.forge.internal.task;
 
 final class DelayedTask {
     private int ticks;

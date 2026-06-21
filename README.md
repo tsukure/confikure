@@ -10,7 +10,7 @@
 `confikure` is a small java config and gui library for legacy minecraft forge mods.
 it targets forge 1.8.9 and java 8 bytecode.
 
-configs are declared with annotations, scanned at runtime, persisted as json, and opened in a minecraft-style gui.
+configs are declared with annotations, scanned at runtime, persisted as json, and opened in-game.
 
 ## install
 
@@ -104,10 +104,10 @@ open the built-in screen from a command or keybind:
 ```java
 import java.io.File;
 import net.minecraft.client.Minecraft;
-import re.tsuku.confikure.forge.ConfikureForge;
+import re.tsuku.confikure.forge.ForgeConfig;
 
 File configFile = new File(new File(Minecraft.getMinecraft().mcDataDir, "config"), "examplemod.json");
-ConfikureForge.open(config, configFile.toPath());
+ForgeConfig.open(config, configFile);
 ```
 
 `open` delays screen creation by one client tick so chat can close before the gui opens.
@@ -116,7 +116,7 @@ ConfikureForge.open(config, configFile.toPath());
 to embed confikure inside your own `GuiScreen`, create a controller and forward lifecycle calls:
 
 ```java
-ConfikureForgeGui gui = ConfikureForge.gui(config, configFile.toPath(), confikure -> {
+ForgeConfigGui gui = ForgeConfig.gui(config, configFile, confikure -> {
     confikure.sidebarHeader((renderer, bounds, theme) -> {
         renderer.text("examplemod", bounds.x, bounds.y, theme.text);
         renderer.text("settings", bounds.x, bounds.y + 12, theme.mutedText);
@@ -160,19 +160,10 @@ gui.themeSupplier(() -> ConfigColorScheme.byDisplayName(config.visuals.themeSche
 
 the built-in schemes are `minecraft`, `catppuccin mocha`, and `ayu mirage`.
 
-## packaging
-
-the published forge jar includes relocated copies of fastjson2 and fastbus.
-do not add or relocate those dependencies separately for confikure.
-
-the forge adapter also includes `mixins.confikure.json` and the required mixin manifest attributes.
-if you embed confikure into another mod jar, keep that mixin config and manifest intact.
-do not relocate `re.tsuku.confikure` unless your build also rewrites the mixin config entries.
-
-## dev example
+## example
 
 `src/forge/java` is the production forge adapter that is included in release jars.
-`src/dev/java` is a local loom example mod and is excluded from release jars and sources.
+`src/example/java` is a local example mod that shows command registration, config persistence, gui customization, read-only settings, conditional settings, and a small mod-owned event bus.
 
 run the example mod:
 
@@ -189,7 +180,7 @@ open the example gui with:
 the example config is written to:
 
 ```text
-run/config/confikure-dev.json
+run/config/confikure-example.json
 ```
 
 ## build
@@ -211,15 +202,6 @@ the remapped jar is written to:
 ```text
 build/libs/confikure-1.0.0-SNAPSHOT-forge.jar
 ```
-
-publish locally:
-
-```bash
-./gradlew publishToMavenLocal
-```
-
-release publishing is tag-based.
-tags like `v1.0.0` publish version `1.0.0`.
 
 ## license
 
