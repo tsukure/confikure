@@ -12,9 +12,11 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import re.tsuku.confikure.gui.ConfigGuiState;
 import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigGroup;
@@ -29,6 +31,10 @@ public final class ConfigStore {
     }.getType();
 
     public void save(ConfigDefinition definition, Path path) throws IOException {
+        save(definition, null, path);
+    }
+
+    public void save(ConfigDefinition definition, ConfigGuiState guiState, Path path) throws IOException {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("version", definition.version());
         root.put("config", definition.id());
@@ -48,6 +54,9 @@ public final class ConfigStore {
             categories.put(category.id(), groups);
         }
         root.put("categories", categories);
+        if (guiState != null) {
+            root.put("gui", writeGuiState(definition, guiState));
+        }
 
         Path parent = path.getParent();
         if (parent != null) {
@@ -65,6 +74,10 @@ public final class ConfigStore {
     }
 
     public boolean load(ConfigDefinition definition, Path path) throws IOException {
+        return load(definition, path, null);
+    }
+
+    public boolean load(ConfigDefinition definition, Path path, ConfigGuiState guiState) throws IOException {
         if (!Files.isRegularFile(path)) {
             return false;
         }
@@ -88,6 +101,9 @@ public final class ConfigStore {
             return false;
         }
         readCategories(definition, castMap(categoriesValue));
+        if (guiState != null && root.containsKey("gui")) {
+            readGuiState(definition, root.get("gui"), guiState);
+        }
         return true;
     }
 
@@ -158,6 +174,81 @@ public final class ConfigStore {
             return value;
         }
         return value;
+    }
+
+    private static Map<String, Object> writeGuiState(ConfigDefinition definition, ConfigGuiState state) {
+        Map<String, Object> gui = new LinkedHashMap<>();
+        String selectedCategoryId = state.selectedCategoryId();
+        if (containsCategory(definition, selectedCategoryId)) {
+            gui.put("selectedCategory", selectedCategoryId);
+        }
+        Map<String, Object> collapsedGroups = new LinkedHashMap<>();
+        for (ConfigCategory category : definition.categories()) {
+            List<String> groups = new ArrayList<>();
+            for (ConfigGroup group : category.groups()) {
+                if (state.collapsed(category.id(), group.id())) {
+                    groups.add(group.id());
+                }
+            }
+            if (!groups.isEmpty()) {
+                collapsedGroups.put(category.id(), groups);
+            }
+        }
+        gui.put("collapsedGroups", collapsedGroups);
+        return gui;
+    }
+
+    private static void readGuiState(ConfigDefinition definition, Object value, ConfigGuiState state) {
+        state.clear();
+        if (!(value instanceof Map)) {
+            return;
+        }
+        Map<String, Object> gui = castMap(value);
+        Object selectedCategory = gui.get("selectedCategory");
+        if (selectedCategory != null) {
+            String categoryId = String.valueOf(selectedCategory);
+            if (containsCategory(definition, categoryId)) {
+                state.selectedCategoryId(categoryId);
+            }
+        }
+        Object collapsedGroups = gui.get("collapsedGroups");
+        if (!(collapsedGroups instanceof Map)) {
+            return;
+        }
+        Map<String, Object> categories = castMap(collapsedGroups);
+        for (ConfigCategory category : definition.categories()) {
+            Object groupsValue = categories.get(category.id());
+            if (!(groupsValue instanceof List)) {
+                continue;
+            }
+            for (Object groupValue : (List<?>) groupsValue) {
+                String groupId = String.valueOf(groupValue);
+                if (containsGroup(category, groupId)) {
+                    state.collapsed(category.id(), groupId, true);
+                }
+            }
+        }
+    }
+
+    private static boolean containsCategory(ConfigDefinition definition, String categoryId) {
+        if (categoryId == null) {
+            return false;
+        }
+        for (ConfigCategory category : definition.categories()) {
+            if (category.id().equals(categoryId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsGroup(ConfigCategory category, String groupId) {
+        for (ConfigGroup group : category.groups()) {
+            if (group.id().equals(groupId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")

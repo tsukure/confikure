@@ -118,6 +118,11 @@ public final class ConfigGui implements EditorContext {
         return selectedCategory;
     }
 
+    public String selectedCategoryId() {
+        ConfigCategory category = category();
+        return category == null ? null : category.id();
+    }
+
     public void selectedCategory(int selectedCategory) {
         if (definition.categories().isEmpty()) {
             this.selectedCategory = 0;
@@ -128,6 +133,63 @@ public final class ConfigGui implements EditorContext {
         focusedOption = null;
         activeOption = null;
         closePopups();
+    }
+
+    public void selectedCategory(String categoryId) {
+        if (categoryId == null) {
+            selectedCategory(0);
+            return;
+        }
+        for (int i = 0; i < definition.categories().size(); i++) {
+            if (categoryId.equals(definition.categories().get(i).id())) {
+                selectedCategory(i);
+                return;
+            }
+        }
+        selectedCategory(0);
+    }
+
+    public boolean groupCollapsed(String categoryId, String groupId) {
+        return Boolean.TRUE.equals(collapsedGroups.get(ConfigGuiState.groupKey(categoryId, groupId)));
+    }
+
+    public void groupCollapsed(String categoryId, String groupId, boolean collapsed) {
+        String key = ConfigGuiState.groupKey(categoryId, groupId);
+        if (collapsed) {
+            collapsedGroups.put(key, true);
+        } else {
+            collapsedGroups.remove(key);
+        }
+        scroll = 0;
+    }
+
+    public ConfigGuiState state() {
+        ConfigGuiState state = new ConfigGuiState();
+        state.selectedCategoryId(selectedCategoryId());
+        for (ConfigCategory category : definition.categories()) {
+            for (ConfigGroup group : category.groups()) {
+                if (groupCollapsed(category.id(), group.id())) {
+                    state.collapsed(category.id(), group.id(), true);
+                }
+            }
+        }
+        return state;
+    }
+
+    public void state(ConfigGuiState state) {
+        if (state == null) {
+            return;
+        }
+        selectedCategory(state.selectedCategoryId());
+        collapsedGroups.clear();
+        for (ConfigCategory category : definition.categories()) {
+            for (ConfigGroup group : category.groups()) {
+                if (state.collapsed(category.id(), group.id())) {
+                    collapsedGroups.put(ConfigGuiState.groupKey(category.id(), group.id()), true);
+                }
+            }
+        }
+        scroll = 0;
     }
 
     public int scroll() {
@@ -1071,7 +1133,7 @@ public final class ConfigGui implements EditorContext {
 
     private String groupKey(ConfigGroup group) {
         ConfigCategory category = category();
-        return (category == null ? "" : category.id()) + "/" + group.id();
+        return ConfigGuiState.groupKey(category == null ? "" : category.id(), group.id());
     }
 
     private static boolean hasVisibleOptions(ConfigGroup group) {

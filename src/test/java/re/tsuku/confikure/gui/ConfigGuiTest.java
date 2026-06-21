@@ -254,6 +254,21 @@ public final class ConfigGuiTest {
         assertEquals(0, config.visuals.openGui);
     }
 
+    @Test
+    public void guiStateRemembersSelectedCategoryAndCollapsedGroups() {
+        ConfigGui gui = new ConfigGui(Confikure.scan(new ExampleConfig()));
+        gui.selectedCategory("visuals");
+        gui.groupCollapsed("visuals", "theme", true);
+
+        ConfigGuiState state = gui.state();
+        ConfigGui restored = new ConfigGui(gui.definition());
+        restored.state(state);
+
+        assertEquals("visuals", restored.selectedCategoryId());
+        assertTrue(restored.groupCollapsed("visuals", "theme"));
+        assertFalse(restored.groupCollapsed("movement", "sprint"));
+    }
+
     private static void clickControl(ConfigGui gui, String optionId) {
         click(gui, gui.controlBounds(WIDTH, HEIGHT, option(gui, optionId)));
     }

@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import re.tsuku.confikure.ConfigFixtures.ExampleConfig;
 import re.tsuku.confikure.Confikure;
+import re.tsuku.confikure.gui.ConfigGuiState;
 import re.tsuku.confikure.model.ConfigDefinition;
 
 public final class ConfigStoreTest {
@@ -37,6 +38,45 @@ public final class ConfigStoreTest {
         assertEquals(1.5D, loaded.movement.speed, 0.0D);
         assertEquals("fancy", loaded.visuals.mode);
         assertEquals(Arrays.asList("two", "one"), loaded.visuals.order);
+    }
+
+    @Test
+    public void persistsGuiStateByStableIds() throws Exception {
+        ExampleConfig config = new ExampleConfig();
+        ConfigDefinition definition = Confikure.scan(config);
+        ConfigStore store = new ConfigStore();
+        ConfigGuiState state = new ConfigGuiState();
+        Path path = temporaryFolder.newFile("gui-state.json").toPath();
+
+        state.selectedCategoryId("visuals");
+        state.collapsed("visuals", "theme", true);
+        state.collapsed("visuals", "missing", true);
+        store.save(definition, state, path);
+
+        ConfigGuiState loaded = new ConfigGuiState();
+        assertTrue(store.load(Confikure.scan(new ExampleConfig()), path, loaded));
+
+        assertEquals("visuals", loaded.selectedCategoryId());
+        assertTrue(loaded.collapsed("visuals", "theme"));
+        assertFalse(loaded.collapsed("visuals", "missing"));
+        assertFalse(loaded.collapsed("movement", "sprint"));
+    }
+
+    @Test
+    public void loadWithoutGuiStateKeepsCallerDefaults() throws Exception {
+        ExampleConfig config = new ExampleConfig();
+        ConfigStore store = new ConfigStore();
+        ConfigGuiState state = new ConfigGuiState();
+        Path path = temporaryFolder.newFile("without-gui-state.json").toPath();
+
+        state.selectedCategoryId("visuals");
+        state.collapsed("visuals", "theme", true);
+        store.save(Confikure.scan(config), path);
+
+        assertTrue(store.load(Confikure.scan(new ExampleConfig()), path, state));
+
+        assertEquals("visuals", state.selectedCategoryId());
+        assertTrue(state.collapsed("visuals", "theme"));
     }
 
     @Test

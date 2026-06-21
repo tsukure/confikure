@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import re.tsuku.confikure.gui.ConfigGui;
+import re.tsuku.confikure.gui.ConfigGuiState;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.persistence.ConfigStore;
 
@@ -92,7 +93,7 @@ public final class ForgeConfigGui {
         Keyboard.enableRepeatEvents(false);
         if (path != null) {
             try {
-                store.save(definition, path);
+                store.save(definition, gui == null ? null : gui.state(), path);
             } catch (IOException exception) {
                 throw new IllegalStateException("unable to save config: " + path, exception);
             }
@@ -104,7 +105,13 @@ public final class ForgeConfigGui {
             return;
         }
         try {
-            store.load(definition, path);
+            ConfigGuiState state = gui.state();
+            boolean found = store.load(definition, path, state);
+            if (!found) {
+                loaded = true;
+                return;
+            }
+            gui.state(state);
             loaded = true;
         } catch (IOException exception) {
             throw new IllegalStateException("unable to load config: " + path, exception);
