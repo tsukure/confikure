@@ -17,12 +17,13 @@ final class TextEditor implements OptionEditor {
         int width = 142;
         int x = bounds.x + bounds.width - width - 6;
         int height = multiline ? 42 : 18;
-        int y = bounds.y + (multiline ? 8 : (bounds.height - height) / 2);
+        int y = bounds.y + (bounds.height - height) / 2;
         String text = String.valueOf(option.get());
         String line = firstLine(text);
         int cursor = Math.max(0, Math.min(context.textCursor(option), text.length()));
         EditorDraw.textField(renderer, theme, x, y, width, height, line, cursor, context.textSelectionStart(option),
-                context.textSelectionEnd(option), context.hovered(option), context.focused(option));
+                context.textSelectionEnd(option), context.hovered(option), context.focused(option),
+                option.enabled(), multiline);
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

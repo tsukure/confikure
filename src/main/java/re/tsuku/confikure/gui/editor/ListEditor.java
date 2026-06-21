@@ -13,7 +13,13 @@ final class ListEditor implements OptionEditor {
             EditorContext context) {
         Object value = option.get();
         int size = value instanceof List ? ((List<?>) value).size() : 0;
-        renderer.text(size + " items", bounds.x + bounds.width - 66, bounds.y + 8, theme.mutedText);
+        int width = 64;
+        int x = bounds.x + bounds.width - width - 6;
+        int y = bounds.y + (bounds.height - 18) / 2;
+        EditorDraw.frame(renderer, x, y, width, 18, theme, context.hovered(option), context.active(option),
+                option.enabled());
+        renderer.centeredText(size + " items", x, y + 5, width,
+                option.enabled() ? theme.mutedText : theme.disabledText);
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

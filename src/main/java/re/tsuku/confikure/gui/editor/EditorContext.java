@@ -14,6 +14,8 @@ public interface EditorContext {
 
     boolean dropdownOpen(ConfigOption option);
 
+    boolean colorPickerOpen(ConfigOption option);
+
     String displayValue(ConfigOption option);
 
     int mouseX();

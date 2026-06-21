@@ -154,10 +154,11 @@ public final class ConfigScanner {
         EditorType editorType = editorType(field, option.type());
         String id = option.id().isEmpty() ? stableId(option.name()) : option.id();
         Keybind keybind = field.getAnnotation(Keybind.class);
+        Color color = field.getAnnotation(Color.class);
         return new ConfigOption(id, option.name(), option.description(), groupId, option.order(), editorType,
                 new FieldOptionAccess(field, owner), read(field, owner), range(field), choices(field),
                 searchTags(field.getAnnotation(SearchTag.class)), keybind == null || keybind.clearable(),
-                keybind != null && keybind.resetOnClear());
+                keybind != null && keybind.resetOnClear(), color == null || color.alpha());
     }
 
     private ConfigOption button(Method method, Object owner, Button button) {

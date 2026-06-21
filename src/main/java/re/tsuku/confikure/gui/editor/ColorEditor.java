@@ -10,10 +10,15 @@ final class ColorEditor implements OptionEditor {
             EditorContext context) {
         int x = bounds.x + bounds.width - 46;
         int y = bounds.y + (bounds.height - 18) / 2;
-        EditorDraw.frame(renderer, x, y, 40, 18, theme, context.hovered(option), context.focused(option));
+        EditorDraw.frame(renderer, x, y, 40, 18, theme, context.hovered(option), context.colorPickerOpen(option),
+                option.enabled());
         int color = option.get() instanceof Number ? ((Number) option.get()).intValue() : 0xFFFFFFFF;
         renderer.fill(x + 4, y + 4, x + 36, y + 14, theme.slot);
         renderer.fill(x + 5, y + 5, x + 35, y + 13, color);
+        if (!option.enabled()) {
+            renderer.fill(x + 5, y + 5, x + 35, y + 6, theme.borderDark);
+            renderer.fill(x + 5, y + 12, x + 35, y + 13, theme.borderDark);
+        }
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

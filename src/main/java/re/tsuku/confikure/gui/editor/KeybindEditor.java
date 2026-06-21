@@ -10,18 +10,19 @@ final class KeybindEditor implements OptionEditor {
             EditorContext context) {
         int x = bounds.x + bounds.width - 86;
         int y = bounds.y + (bounds.height - 18) / 2;
-        EditorDraw.frame(renderer, x, y, 80, 18, theme, context.hovered(option), context.focused(option));
+        EditorDraw.frame(renderer, x, y, 80, 18, theme, context.hovered(option), context.focused(option),
+                option.enabled());
         int clearX = x + 64;
-        boolean showClear = option.keybindClearable() && (context.hovered(option) || context.focused(option));
+        boolean showClear = option.enabled() && option.keybindClearable() && (context.hovered(option)
+                || context.focused(option));
         renderer.centeredText(context.focused(option) ? "press key" : context.displayValue(option), x, y + 5,
                 showClear ? 62 : 80,
-                context.focused(option) ? theme.accent : theme.text);
+                !option.enabled() ? theme.disabledText : context.focused(option) ? theme.accent : theme.text);
         if (showClear) {
             boolean hovered = context.mouseX() >= clearX && context.mouseY() >= y && context.mouseX() < x + 80
                     && context.mouseY() < y + 18;
-            renderer.fill(clearX, y + 1, clearX + 1, y + 17, theme.borderDark);
-            renderer.fill(clearX + 1, y + 2, x + 78, y + 16, hovered ? theme.danger : theme.panel);
-            renderer.centeredText("x", clearX, y + 5, 16, hovered ? theme.text : theme.mutedText);
+            EditorDraw.inlineButton(renderer, theme, clearX, y, 16, 18, hovered, true);
+            renderer.centeredText("x", clearX, y + 5, 16, hovered ? theme.danger : theme.mutedText);
         }
     }
 

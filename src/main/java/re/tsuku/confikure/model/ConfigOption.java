@@ -24,6 +24,7 @@ public final class ConfigOption {
     private final List<String> searchTags;
     private final boolean keybindClearable;
     private final boolean keybindResetOnClear;
+    private final boolean colorAlpha;
     private final List<OptionListener> listeners = new ArrayList<>();
     private OptionCondition visibleWhen = always();
     private OptionCondition enabledWhen = always();
@@ -32,12 +33,19 @@ public final class ConfigOption {
             OptionAccess access, Object defaultValue, NumberRange range, List<String> choices,
             List<String> searchTags) {
         this(id, name, description, groupId, order, type, access, defaultValue, range, choices, searchTags, true,
-                false);
+                false, true);
     }
 
     public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
             OptionAccess access, Object defaultValue, NumberRange range, List<String> choices, List<String> searchTags,
             boolean keybindClearable, boolean keybindResetOnClear) {
+        this(id, name, description, groupId, order, type, access, defaultValue, range, choices, searchTags,
+                keybindClearable, keybindResetOnClear, true);
+    }
+
+    public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
+            OptionAccess access, Object defaultValue, NumberRange range, List<String> choices, List<String> searchTags,
+            boolean keybindClearable, boolean keybindResetOnClear, boolean colorAlpha) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -51,6 +59,7 @@ public final class ConfigOption {
         this.searchTags = searchTags == null ? Collections.<String>emptyList() : searchTags;
         this.keybindClearable = keybindClearable;
         this.keybindResetOnClear = keybindResetOnClear;
+        this.colorAlpha = colorAlpha;
     }
 
     public String id() {
@@ -103,6 +112,10 @@ public final class ConfigOption {
 
     public boolean keybindResetOnClear() {
         return keybindResetOnClear;
+    }
+
+    public boolean colorAlpha() {
+        return colorAlpha;
     }
 
     public Object get() {

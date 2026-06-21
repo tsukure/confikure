@@ -47,18 +47,12 @@ public final class TextInputState {
     }
 
     public void cursorAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
-        String value = visibleText == null ? text : visibleText;
-        int next = value.length();
-        for (int i = 0; i <= value.length(); i++) {
-            int left = renderer.textWidth(value.substring(0, i));
-            int right = i == value.length() ? left : renderer.textWidth(value.substring(0, i + 1));
-            if (mouseX < textX + (left + right) / 2) {
-                next = i;
-                break;
-            }
-        }
-        cursor = Math.max(0, Math.min(text.length(), next));
+        cursor = positionAt(renderer, visibleText, textX, mouseX);
         selection = cursor;
+    }
+
+    public void selectAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
+        cursor = positionAt(renderer, visibleText, textX, mouseX);
     }
 
     public KeyResult keyTyped(char typedChar, int keyCode, boolean shift, boolean control, boolean multiline) {
@@ -79,11 +73,11 @@ public final class TextInputState {
             return KeyResult.USED;
         }
         if (keyCode == 203) {
-            move(-1, shift);
+            moveTo(control ? wordBoundaryLeft(cursor) : cursor - 1, shift);
             return KeyResult.USED;
         }
         if (keyCode == 205) {
-            move(1, shift);
+            moveTo(control ? wordBoundaryRight(cursor) : cursor + 1, shift);
             return KeyResult.USED;
         }
         if (keyCode == 199) {
@@ -101,11 +95,19 @@ public final class TextInputState {
             return KeyResult.USED;
         }
         if (keyCode == 14) {
-            backspace();
+            if (control) {
+                deleteBackwardWord();
+            } else {
+                backspace();
+            }
             return KeyResult.CHANGED;
         }
         if (keyCode == 211) {
-            deleteForward();
+            if (control) {
+                deleteForwardWord();
+            } else {
+                deleteForward();
+            }
             return KeyResult.CHANGED;
         }
         if (typedChar >= 32 && typedChar != 127 && filter.accept(typedChar)) {
@@ -146,6 +148,28 @@ public final class TextInputState {
         if (cursor < text.length()) {
             text = text.substring(0, cursor) + text.substring(cursor + 1);
         }
+        selection = cursor;
+    }
+
+    private void deleteBackwardWord() {
+        if (cursor != selection) {
+            replaceSelection("");
+            return;
+        }
+        int next = wordBoundaryLeft(cursor);
+        text = text.substring(0, next) + text.substring(cursor);
+        cursor = next;
+        selection = next;
+    }
+
+    private void deleteForwardWord() {
+        if (cursor != selection) {
+            replaceSelection("");
+            return;
+        }
+        int next = wordBoundaryRight(cursor);
+        text = text.substring(0, cursor) + text.substring(next);
+        selection = cursor;
     }
 
     private void replaceSelection(String replacement) {
@@ -156,11 +180,51 @@ public final class TextInputState {
         selection = cursor;
     }
 
-    private void move(int delta, boolean selecting) {
-        cursor = Math.max(0, Math.min(text.length(), cursor + delta));
+    private void moveTo(int next, boolean selecting) {
+        cursor = Math.max(0, Math.min(text.length(), next));
         if (!selecting) {
             selection = cursor;
         }
+    }
+
+    private int positionAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
+        String value = visibleText == null ? text : visibleText;
+        int next = value.length();
+        for (int i = 0; i <= value.length(); i++) {
+            int left = renderer.textWidth(value.substring(0, i));
+            int right = i == value.length() ? left : renderer.textWidth(value.substring(0, i + 1));
+            if (mouseX < textX + (left + right) / 2) {
+                next = i;
+                break;
+            }
+        }
+        return Math.max(0, Math.min(text.length(), next));
+    }
+
+    private int wordBoundaryLeft(int from) {
+        int index = Math.max(0, Math.min(text.length(), from));
+        while (index > 0 && isWhitespace(text.charAt(index - 1))) {
+            index--;
+        }
+        while (index > 0 && !isWhitespace(text.charAt(index - 1))) {
+            index--;
+        }
+        return index;
+    }
+
+    private int wordBoundaryRight(int from) {
+        int index = Math.max(0, Math.min(text.length(), from));
+        while (index < text.length() && isWhitespace(text.charAt(index))) {
+            index++;
+        }
+        while (index < text.length() && !isWhitespace(text.charAt(index))) {
+            index++;
+        }
+        return index;
+    }
+
+    private static boolean isWhitespace(char character) {
+        return character <= ' ';
     }
 
     private void clamp() {

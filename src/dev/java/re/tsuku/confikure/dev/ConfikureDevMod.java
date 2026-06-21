@@ -26,6 +26,8 @@ import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
+import re.tsuku.confikure.model.ConfigOption;
+import re.tsuku.confikure.model.OptionCondition;
 
 @Mod(modid = "confikure-dev", name = "confikure dev", version = "dev", clientSideOnly = true)
 public final class ConfikureDevMod {
@@ -57,16 +59,38 @@ public final class ConfikureDevMod {
                         });
                         gui.sidebarHeader(new ConfigGui.SidebarHeader() {
                             public void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme) {
-                                renderer.fill(bounds.x, bounds.y, bounds.x + 16, bounds.y + 16, theme.accentDark);
-                                renderer.fill(bounds.x + 3, bounds.y + 3, bounds.x + 13, bounds.y + 13, theme.accent);
-                                renderer.text("confikure", bounds.x + 22, bounds.y, theme.text);
-                                renderer.text("dev preview", bounds.x + 22, bounds.y + 12, theme.mutedText);
+                                renderer.text("confikure", bounds.x, bounds.y, theme.text);
+                                renderer.text("dev preview", bounds.x, bounds.y + 12, theme.mutedText);
                             }
                         });
+                        configureDevOptions(gui);
                     }
                 });
             }
         });
+    }
+
+    private static void configureDevOptions(ConfigGui gui) {
+        ConfigOption dependentDensity = gui.definition().option("dependent-density");
+        if (dependentDensity != null) {
+            dependentDensity.visibleWhen(new OptionCondition() {
+                public boolean test() {
+                    return CONFIG.general.advanced.showDependent;
+                }
+            });
+        }
+        String[] readOnly = {"read-only-switch", "read-only-slider", "read-only-dropdown", "read-only-mode",
+                "read-only-keybind", "read-only-color"};
+        for (int i = 0; i < readOnly.length; i++) {
+            ConfigOption option = gui.definition().option(readOnly[i]);
+            if (option != null) {
+                option.enabledWhen(new OptionCondition() {
+                    public boolean test() {
+                        return false;
+                    }
+                });
+            }
+        }
     }
 
     @Config(name = "confikure dev", id = "confikure-dev", description = "local development config")
@@ -123,6 +147,13 @@ public final class ConfikureDevMod {
         @Option(name = "style", description = "another dropdown row", order = 5)
         @Dropdown(values = {"compact", "normal", "wide"})
         public String style = "normal";
+
+        @Option(name = "show dependent", description = "reveals another setting", order = 6)
+        public boolean showDependent = false;
+
+        @Option(name = "dependent density", description = "hidden until enabled above", order = 7)
+        @Range(min = 0.0D, max = 10.0D, step = 1.0D)
+        public int dependentDensity = 5;
     }
 
     public static final class Feature {
@@ -163,17 +194,45 @@ public final class ConfikureDevMod {
         @Color
         public int accent = 0xFF78A96B;
 
-        @Option(name = "title", description = "simple text input", order = 2)
+        @Option(name = "solid color", description = "color without alpha", order = 2)
+        @Color(alpha = false)
+        public int solidColor = 0xFF4F8BC9;
+
+        @Option(name = "title", description = "simple text input", order = 3)
         public String title = "confikure";
 
-        @Option(name = "notes", description = "multiline text input", order = 3)
+        @Option(name = "notes", description = "multiline text input", order = 4)
         @Multiline
         public String notes = "hello from loom";
     }
 
     public static final class Preview {
-        @Option(name = "info", description = "read-only value example", order = 0)
+        @Option(name = "description", order = 0)
         @Info
-        public String info = "read-only example";
+        public String description = "Plain description text can live in the option list without a value control.";
+
+        @Option(name = "read only switch", description = "disabled boolean example", order = 1)
+        public boolean readOnlySwitch = true;
+
+        @Option(name = "read only slider", description = "disabled slider example", order = 2)
+        @Range(min = 0.0D, max = 1.0D, step = 0.1D)
+        public double readOnlySlider = 0.7D;
+
+        @Option(name = "read only dropdown", description = "disabled dropdown example", order = 3)
+        @Dropdown(values = {"simple", "detailed", "debug"})
+        public String readOnlyDropdown = "detailed";
+
+        @Option(name = "read only mode", description = "disabled mode example", order = 4)
+        @Mode(values = {"simple", "detailed", "debug"})
+        public String readOnlyMode = "debug";
+
+        @Option(name = "read only keybind", description = "disabled keybind example", order = 5)
+        @Keybind
+        public int readOnlyKeybind = 54;
+
+        @Option(name = "read only color", description = "disabled color example", order = 6)
+        @Color(alpha = false)
+        public int readOnlyColor = 0xFFAA8844;
+
     }
 }

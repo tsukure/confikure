@@ -9,6 +9,7 @@ import static re.tsuku.confikure.ConfigFixtures.find;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
+import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateCategoryConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateGroupConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateOptionConfig;
@@ -60,6 +61,15 @@ public final class ConfigScannerTest {
         assertFalse(find(options, "locked-key").keybindClearable());
         assertTrue(find(options, "reset-key").keybindClearable());
         assertTrue(find(options, "reset-key").keybindResetOnClear());
+    }
+
+    @Test
+    public void scansColorAlphaPolicy() {
+        ConfigDefinition definition = Confikure.scan(new ColorAlphaConfig());
+        List<ConfigOption> options = definition.categories().get(0).options();
+
+        assertTrue(find(options, "with-alpha").colorAlpha());
+        assertFalse(find(options, "without-alpha").colorAlpha());
     }
 
     @Test

@@ -22,19 +22,16 @@ final class SliderEditor implements OptionEditor {
         int filled = (int) Math.round(width * Math.max(0.0D, Math.min(1.0D, progress)));
         renderer.fill(x, y - 1, x + width, y + 8, theme.panel);
         renderer.fill(x + 1, y, x + width - 1, y + 7, theme.slot);
+        int fillColor = !option.enabled() ? theme.borderDark : context.active(option) ? theme.accent : theme.accentDark;
         renderer.fill(x + 1, y, x + Math.max(1, filled), y + 7,
-                context.active(option) ? theme.accent : theme.accentDark);
-        renderer.fill(x + 1, y, x + Math.max(1, filled), y + 1, theme.accent);
+                fillColor);
+        renderer.fill(x + 1, y, x + Math.max(1, filled), y + 1, option.enabled() ? theme.accent : theme.border);
         int knobX = x + filled;
-        renderer.fill(knobX - 3, y - 4, knobX + 4, y + 11, theme.panelRaised);
-        renderer.fill(knobX - 3, y - 4, knobX + 4, y - 3, theme.border);
-        renderer.fill(knobX - 3, y - 4, knobX - 2, y + 11, theme.border);
-        renderer.fill(knobX + 3, y - 3, knobX + 4, y + 11, theme.borderDark);
-        renderer.fill(knobX - 2, y + 10, knobX + 4, y + 11, theme.borderDark);
+        EditorDraw.sliderHandle(renderer, theme, knobX, y - 4, 15, context.active(option), option.enabled());
         EditorDraw.textField(renderer, theme, fieldX, bounds.y + 7, fieldWidth, 18, context.displayValue(option),
                 context.textCursor(option), context.textSelectionStart(option), context.textSelectionEnd(option),
                 contains(fieldX, bounds.y + 7, fieldWidth, 18, context.mouseX(), context.mouseY()),
-                context.focused(option));
+                context.focused(option), option.enabled());
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {

@@ -105,6 +105,22 @@ public final class ConfigFixtures {
         public int resetKey = 54;
     }
 
+    @Config(name = "color alpha")
+    public static final class ColorAlphaConfig {
+        @Category(name = "general")
+        public final ColorAlpha general = new ColorAlpha();
+    }
+
+    public static final class ColorAlpha {
+        @Option(name = "with alpha")
+        @Color
+        public int withAlpha = 0x8078A96B;
+
+        @Option(name = "without alpha")
+        @Color(alpha = false)
+        public int withoutAlpha = 0xFF78A96B;
+    }
+
     @Config(name = "offset range")
     public static final class OffsetRangeConfig {
         @Category(name = "general")

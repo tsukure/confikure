@@ -12,10 +12,12 @@ final class SwitchEditor implements OptionEditor {
         int x = bounds.x + bounds.width - width - 6;
         int y = bounds.y + (bounds.height - 16) / 2;
         boolean enabled = Boolean.TRUE.equals(option.get());
-        EditorDraw.frame(renderer, x, y, width, 16, theme, context.hovered(option), context.focused(option));
-        renderer.fill(x + 3, y + 3, x + width - 3, y + 13, enabled ? theme.accentDark : theme.slot);
+        EditorDraw.frame(renderer, x, y, width, 16, theme, context.hovered(option), context.focused(option),
+                option.enabled());
+        renderer.fill(x + 3, y + 3, x + width - 3, y + 13,
+                !option.enabled() ? theme.borderDark : enabled ? theme.accentDark : theme.slot);
         int knobX = enabled ? x + width - 13 : x + 3;
-        EditorDraw.frame(renderer, knobX, y + 3, 10, 10, theme, false, false);
+        EditorDraw.frame(renderer, knobX, y + 3, 10, 10, theme, false, false, option.enabled());
     }
 
     public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {
