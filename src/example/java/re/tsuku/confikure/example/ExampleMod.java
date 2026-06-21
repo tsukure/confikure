@@ -6,7 +6,7 @@ import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import re.tsuku.fastbus.FastBus;
 
-@Mod(modid = "confikure-example", name = "confikure example", version = "dev", clientSideOnly = true)
+@Mod(modid = "confikure-example", name = "confikure example", version = "example", clientSideOnly = true)
 public final class ExampleMod {
     private static final ExampleConfig CONFIG = new ExampleConfig();
     private static final FastBus EVENTS = new FastBus();

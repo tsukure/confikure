@@ -145,7 +145,7 @@ tasks {
     val releaseSourcesJar = register("releaseSourcesJar") {
         group = LifecycleBasePlugin.BUILD_GROUP
         description = "Copies the release source jar into the published artifact name."
-        val input = layout.buildDirectory.file("libs/confikure-${project.version}-sources-dev.jar")
+        val input = named<Jar>("sourcesJar").flatMap { it.archiveFile }
         val output = layout.buildDirectory.file("libs/confikure-${project.version}-sources.jar")
         dependsOn(named("sourcesJar"))
         inputs.file(input)
