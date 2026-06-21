@@ -10,30 +10,34 @@ import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
 import re.tsuku.confikure.ConfigFixtures.ExampleConfig;
 import re.tsuku.confikure.ConfigFixtures.OffsetRangeConfig;
 import re.tsuku.confikure.Confikure;
+import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.OptionCondition;
 
 public final class ConfigGuiTest {
+    private static final int WIDTH = 800;
+    private static final int HEIGHT = 600;
+
     @Test
     public void guiCanEditInteractiveTypes() {
         ExampleConfig config = new ExampleConfig();
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 670, 285);
+        clickControl(gui, "notes");
         gui.keyTyped('!', 0);
         assertEquals("line one!", config.visuals.notes);
 
-        gui.click(800, 600, 640, 181);
+        clickControl(gui, "open-gui");
         gui.keyTyped('\0', 35);
         assertEquals(35, config.visuals.openGui);
 
-        gui.click(800, 600, 670, 358);
+        clickControl(gui, "order");
         assertEquals(Arrays.asList("two", "one"), config.visuals.order);
 
-        gui.click(800, 600, 660, 441);
-        gui.click(800, 600, 600, 474);
+        clickControl(gui, "primary-color");
+        clickHexField(gui, "primary-color");
         gui.keyTyped('\0', 30, false, true);
         for (char character : "112233".toCharArray()) {
             gui.keyTyped(character, 0);
@@ -52,17 +56,17 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 670, 212);
+        clickControl(gui, "mode");
         assertEquals("simple", config.visuals.mode);
-        gui.click(800, 600, 670, 241);
+        clickDropdownChoice(gui, "mode", 1);
         assertEquals("fancy", config.visuals.mode);
 
         assertEquals("one", config.visuals.cycleMode);
-        gui.click(800, 600, 670, 243);
+        clickMode(gui, "cycle-mode", 1);
         assertEquals("two", config.visuals.cycleMode);
-        gui.click(800, 600, 670, 243);
+        clickMode(gui, "cycle-mode", 1);
         assertEquals("one", config.visuals.cycleMode);
-        gui.click(800, 600, 550, 243);
+        clickMode(gui, "cycle-mode", -1);
         assertEquals("two", config.visuals.cycleMode);
     }
 
@@ -72,11 +76,11 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 300, 212);
+        clickRowLabel(gui, "mode");
         assertEquals("simple", config.visuals.mode);
 
-        gui.click(800, 600, 670, 212);
-        gui.click(800, 600, 670, 241);
+        clickControl(gui, "mode");
+        clickDropdownChoice(gui, "mode", 1);
         assertEquals("fancy", config.visuals.mode);
     }
 
@@ -86,22 +90,22 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(0);
-        gui.click(800, 600, 535, 212);
+        clickSlider(gui, "speed", 0.0D);
         assertEquals(0.0D, config.movement.speed, 0.0D);
 
-        gui.click(800, 600, 584, 212);
-        gui.drag(800, 600, 670, 212);
+        clickSlider(gui, "speed", 0.5D);
+        dragSlider(gui, "speed", 1.0D);
         gui.release();
         assertEquals(2.0D, config.movement.speed, 0.0D);
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 670, 285);
+        clickControl(gui, "notes");
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('x', 0);
         assertEquals("x", config.visuals.notes);
 
         gui.selectedCategory(0);
-        gui.click(800, 600, 670, 212);
+        clickNumberField(gui, "speed");
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('1', 0);
         gui.keyTyped('.', 0);
@@ -128,9 +132,9 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(0);
-        gui.click(800, 600, 670, 212);
-        gui.click(800, 600, 584, 212);
-        gui.drag(800, 600, 670, 212);
+        clickNumberField(gui, "speed");
+        clickSlider(gui, "speed", 0.5D);
+        dragSlider(gui, "speed", 1.0D);
         gui.release();
 
         assertEquals(2.0D, config.movement.speed, 0.0D);
@@ -160,8 +164,8 @@ public final class ConfigGuiTest {
 
         assertEquals("#78A96B", gui.displayValue(option));
 
-        gui.click(800, 600, 660, 206);
-        gui.click(800, 600, 580, 322);
+        clickControl(gui, "without-alpha");
+        clickHexField(gui, "without-alpha");
         gui.keyTyped('\0', 30, false, true);
         for (char character : "#11223380".toCharArray()) {
             gui.keyTyped(character, 0);
@@ -177,8 +181,8 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 660, 441);
-        gui.click(800, 600, 600, 474);
+        clickControl(gui, "primary-color");
+        clickHexField(gui, "primary-color");
         gui.keyTyped('\0', 30, false, true);
         for (char character : "#NOPE".toCharArray()) {
             gui.keyTyped(character, 0);
@@ -196,25 +200,26 @@ public final class ConfigGuiTest {
 
         gui.selectedCategory(1);
         ConfigOption dropdown = definition.option("mode");
-        gui.click(800, 600, 670, 212);
+        clickControl(gui, "mode");
         dropdown.enabledWhen(never());
-        gui.click(800, 600, 670, 241);
+        clickDropdownChoice(gui, "mode", 1);
         assertEquals("simple", config.visuals.mode);
 
         ConfigOption color = definition.option("primary-color");
-        gui.click(800, 600, 660, 441);
+        clickControl(gui, "primary-color");
         color.enabledWhen(never());
-        gui.click(800, 600, 540, 390);
-        gui.drag(800, 600, 560, 410);
+        GuiBounds hex = gui.colorHexBounds(WIDTH, HEIGHT, color);
+        gui.click(WIDTH, HEIGHT, hex.x - 20, hex.y - 80);
+        gui.drag(WIDTH, HEIGHT, hex.x, hex.y - 60);
         gui.release();
         assertEquals(0xFF78A96B, config.visuals.primaryColor);
 
         gui.selectedCategory(0);
         ConfigOption speed = definition.option("speed");
-        gui.click(800, 600, 584, 216);
+        clickSlider(gui, "speed", 0.5D);
         double afterClick = config.movement.speed;
         speed.enabledWhen(never());
-        gui.drag(800, 600, 670, 216);
+        dragSlider(gui, "speed", 1.0D);
         gui.release();
         assertEquals(afterClick, config.movement.speed, 0.0D);
     }
@@ -227,14 +232,14 @@ public final class ConfigGuiTest {
         assertFalse(gui.keyTyped('\0', 1));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 670, 285);
+        clickControl(gui, "notes");
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('x', 0);
         assertTrue(gui.keyTyped('\0', 28));
         assertEquals("x", config.visuals.notes);
         assertFalse(gui.keyTyped('\0', 1));
 
-        gui.click(800, 600, 660, 441);
+        clickControl(gui, "primary-color");
         assertTrue(gui.keyTyped('\0', 1));
         assertFalse(gui.keyTyped('\0', 1));
     }
@@ -245,8 +250,68 @@ public final class ConfigGuiTest {
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
 
         gui.selectedCategory(1);
-        gui.click(800, 600, 672, 181);
+        clickKeybindClear(gui, "open-gui");
         assertEquals(0, config.visuals.openGui);
+    }
+
+    private static void clickControl(ConfigGui gui, String optionId) {
+        click(gui, gui.controlBounds(WIDTH, HEIGHT, option(gui, optionId)));
+    }
+
+    private static void clickRowLabel(ConfigGui gui, String optionId) {
+        GuiBounds row = gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId));
+        gui.click(WIDTH, HEIGHT, row.x + 16, centerY(row));
+    }
+
+    private static void clickDropdownChoice(ConfigGui gui, String optionId, int index) {
+        GuiBounds row = gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId));
+        GuiBounds control = ControlLayout.editor(row);
+        int y = row.y + row.height - 7 + index * 18 + 9;
+        gui.click(WIDTH, HEIGHT, centerX(control), y);
+    }
+
+    private static void clickMode(ConfigGui gui, String optionId, int direction) {
+        GuiBounds mode = ControlLayout.mode(gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId)));
+        int x = direction < 0 ? mode.x + 8 : mode.x + mode.width - 8;
+        gui.click(WIDTH, HEIGHT, x, centerY(mode));
+    }
+
+    private static void clickSlider(ConfigGui gui, String optionId, double progress) {
+        GuiBounds track = ControlLayout.sliderTrack(gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId)));
+        gui.click(WIDTH, HEIGHT, track.x + (int) Math.round(track.width * progress), centerY(track));
+    }
+
+    private static void dragSlider(ConfigGui gui, String optionId, double progress) {
+        GuiBounds track = ControlLayout.sliderTrack(gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId)));
+        gui.drag(WIDTH, HEIGHT, track.x + (int) Math.round(track.width * progress), centerY(track));
+    }
+
+    private static void clickNumberField(ConfigGui gui, String optionId) {
+        click(gui, ControlLayout.sliderField(gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId))));
+    }
+
+    private static void clickHexField(ConfigGui gui, String optionId) {
+        click(gui, gui.colorHexBounds(WIDTH, HEIGHT, option(gui, optionId)));
+    }
+
+    private static void clickKeybindClear(ConfigGui gui, String optionId) {
+        click(gui, ControlLayout.keybindClear(gui.optionBounds(WIDTH, HEIGHT, option(gui, optionId))));
+    }
+
+    private static void click(ConfigGui gui, GuiBounds bounds) {
+        gui.click(WIDTH, HEIGHT, centerX(bounds), centerY(bounds));
+    }
+
+    private static ConfigOption option(ConfigGui gui, String id) {
+        return gui.definition().option(id);
+    }
+
+    private static int centerX(GuiBounds bounds) {
+        return bounds.x + bounds.width / 2;
+    }
+
+    private static int centerY(GuiBounds bounds) {
+        return bounds.y + bounds.height / 2;
     }
 
     private static OptionCondition never() {

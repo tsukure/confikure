@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import re.tsuku.confikure.gui.GuiPrimitives.Direction;
 import re.tsuku.confikure.gui.color.ColorPickerPopup;
 import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
 import re.tsuku.confikure.gui.editor.EditorContext;
@@ -12,6 +13,9 @@ import re.tsuku.confikure.gui.format.NumberDisplay;
 import re.tsuku.confikure.gui.input.TextInputState;
 import re.tsuku.confikure.gui.input.TextInputState.KeyResult;
 import re.tsuku.confikure.gui.layout.ControlLayout;
+import re.tsuku.confikure.gui.layout.OptionListLayout;
+import re.tsuku.confikure.gui.layout.OptionListLayout.GroupBlock;
+import re.tsuku.confikure.gui.layout.OptionListLayout.OptionRow;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigDefinition;
@@ -150,7 +154,7 @@ public final class ConfigGui implements EditorContext {
         if (drawBackdrop && theme.background != 0) {
             renderer.fill(0, 0, screenWidth, screenHeight, theme.background);
         }
-        frame(renderer, panel.x, panel.y, panel.width, panel.height);
+        GuiPrimitives.frame(renderer, theme, panel);
 
         renderer.fill(panel.x + 1, panel.y + 1, panel.x + SIDEBAR_WIDTH, panel.y + panel.height - 1, theme.sidebar);
         renderer.fill(panel.x + SIDEBAR_WIDTH, panel.y + 1, panel.x + panel.width - 1, panel.y + panel.height - 1,
@@ -379,6 +383,19 @@ public final class ConfigGui implements EditorContext {
         return mouseY;
     }
 
+    GuiBounds optionBounds(int screenWidth, int screenHeight, ConfigOption option) {
+        return optionBounds(panel(screenWidth, screenHeight), option);
+    }
+
+    GuiBounds controlBounds(int screenWidth, int screenHeight, ConfigOption option) {
+        return controlBounds(optionBounds(screenWidth, screenHeight, option), option);
+    }
+
+    GuiBounds colorHexBounds(int screenWidth, int screenHeight, ConfigOption option) {
+        GuiBounds panel = panel(screenWidth, screenHeight);
+        return colorPicker.hexBounds(panel, option, optionBounds(panel, option), theme.padding);
+    }
+
     public int textCursor(ConfigOption option) {
         return textState(option).cursor();
     }
@@ -401,7 +418,7 @@ public final class ConfigGui implements EditorContext {
             boolean selected = i == selectedCategory;
             boolean hovered = tab.contains(mouseX, mouseY);
             int fill = selected ? theme.accentDark : hovered ? theme.panel : theme.panelRaised;
-            boxed(renderer, tab, fill, selected ? theme.accent : theme.border);
+            GuiPrimitives.box(renderer, theme, tab, fill, selected ? theme.accent : theme.border);
             renderer.fill(tab.x, tab.y, tab.x + 2, tab.y + tab.height,
                     selected ? theme.accent : hovered ? theme.accentDark : theme.border);
             renderer.text(category.name(), tab.x + 8, tab.y + 6,
@@ -423,29 +440,14 @@ public final class ConfigGui implements EditorContext {
         int contentHeight = contentViewportHeight(panel);
         renderer.pushClip(contentX, contentY, contentWidth, contentHeight);
 
-        int y = contentY - scroll;
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
+        OptionListLayout layout = optionLayout(panel, category);
+        for (GroupBlock group : layout.groups()) {
+            drawGroupShell(renderer, group.shell(), group.collapsed());
+            drawGroupHeader(renderer, group.group(), group.header(), group.collapsed());
+            for (OptionRow row : group.rows()) {
+                drawOption(renderer, row.option(), row.bounds());
             }
-            boolean collapsed = collapsed(group);
-            int groupHeight = groupBlockHeight(group);
-            drawGroupShell(renderer, new GuiBounds(contentX, y, contentWidth, groupHeight), collapsed);
-            drawGroupHeader(renderer, group, new GuiBounds(contentX, y, contentWidth, GROUP_HEADER_HEIGHT), collapsed);
-            int optionY = y + GROUP_HEADER_STEP;
-            if (!collapsed) {
-                for (ConfigOption option : group.options()) {
-                    if (!option.visible()) {
-                        continue;
-                    }
-                    int rowHeight = rowHeight(option);
-                    GuiBounds row = new GuiBounds(contentX, optionY, contentWidth, rowHeight);
-                    drawOption(renderer, option, row);
-                    optionY += rowHeight + OPTION_GAP;
-                }
-            }
-            drawGroupBottomBorder(renderer, new GuiBounds(contentX, y, contentWidth, groupHeight));
-            y += groupHeight + theme.groupGap;
+            drawGroupBottomBorder(renderer, group.shell());
         }
 
         renderer.popClip();
@@ -489,7 +491,7 @@ public final class ConfigGui implements EditorContext {
             renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width - 1,
                     bounds.y + bounds.height, theme.borderDark);
         }
-        drawChevron(renderer, bounds.x + 13, chevronY(bounds, collapsed ? Direction.RIGHT : Direction.DOWN),
+        GuiPrimitives.chevron(renderer, bounds.x + 13, chevronY(bounds, collapsed ? Direction.RIGHT : Direction.DOWN),
                 collapsed ? Direction.RIGHT : Direction.DOWN,
                 hovered ? theme.accent : theme.mutedText);
         int nameY = bounds.y + Math.max(3, (bounds.height - renderer.fontHeight()) / 2);
@@ -555,7 +557,8 @@ public final class ConfigGui implements EditorContext {
         renderer.text(category.name(), textX, textY, theme.text);
         GuiBounds close = closeBounds(panel);
         boolean hovered = close.contains(mouseX, mouseY);
-        boxed(renderer, close, hovered ? theme.danger : theme.panel, hovered ? theme.text : theme.border);
+        GuiPrimitives.box(renderer, theme, close, hovered ? theme.danger : theme.panel,
+                hovered ? theme.text : theme.border);
         renderer.centeredText("x", close.x, close.y + 5, close.width, hovered ? theme.text : theme.mutedText);
     }
 
@@ -568,7 +571,7 @@ public final class ConfigGui implements EditorContext {
             return;
         }
         GuiBounds bounds = dropdownBounds(panel, openDropdown);
-        frame(renderer, bounds.x, bounds.y, bounds.width, bounds.height);
+        GuiPrimitives.frame(renderer, theme, bounds);
         for (int i = 0; i < openDropdown.choices().size(); i++) {
             int y = bounds.y + i * DROP_ITEM_HEIGHT;
             String choice = openDropdown.choices().get(i);
@@ -619,27 +622,7 @@ public final class ConfigGui implements EditorContext {
     }
 
     private int contentHeight(ConfigCategory category) {
-        int height = 0;
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
-            }
-            height += groupBlockHeight(group);
-            height += theme.groupGap;
-        }
-        return height;
-    }
-
-    private int groupBlockHeight(ConfigGroup group) {
-        int height = GROUP_HEADER_STEP;
-        if (!collapsed(group)) {
-            for (ConfigOption option : group.options()) {
-                if (option.visible()) {
-                    height += rowHeight(option) + OPTION_GAP;
-                }
-            }
-        }
-        return height;
+        return optionLayout(category, 0, 0, 0, 0).contentHeight();
     }
 
     private ConfigOption optionAt(GuiBounds panel, int mouseX, int mouseY) {
@@ -647,29 +630,7 @@ public final class ConfigGui implements EditorContext {
         if (category == null) {
             return null;
         }
-        int contentX = contentX(panel);
-        int y = contentY(panel) - scroll;
-        int contentWidth = contentWidth(panel);
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
-            }
-            y += GROUP_HEADER_STEP;
-            if (!collapsed(group)) {
-                for (ConfigOption option : group.options()) {
-                    if (!option.visible()) {
-                        continue;
-                    }
-                    GuiBounds row = new GuiBounds(contentX, y, contentWidth, rowHeight(option));
-                    if (row.contains(mouseX, mouseY)) {
-                        return option;
-                    }
-                    y += row.height + OPTION_GAP;
-                }
-            }
-            y += theme.groupGap;
-        }
-        return null;
+        return optionLayout(panel, category).optionAt(mouseX, mouseY);
     }
 
     private ConfigOption optionAtComponent(GuiBounds panel, int mouseX, int mouseY) {
@@ -692,28 +653,9 @@ public final class ConfigGui implements EditorContext {
     GuiBounds optionBounds(GuiBounds panel, ConfigOption target) {
         ConfigCategory category = category();
         int contentX = contentX(panel);
-        int y = contentY(panel) - scroll;
         int contentWidth = contentWidth(panel);
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
-            }
-            y += GROUP_HEADER_STEP;
-            if (!collapsed(group)) {
-                for (ConfigOption option : group.options()) {
-                    if (!option.visible()) {
-                        continue;
-                    }
-                    GuiBounds row = new GuiBounds(contentX, y, contentWidth, rowHeight(option));
-                    if (option == target) {
-                        return row;
-                    }
-                    y += row.height + OPTION_GAP;
-                }
-            }
-            y += theme.groupGap;
-        }
-        return new GuiBounds(contentX, panel.y + theme.padding, contentWidth, rowHeight(target));
+        GuiBounds fallback = new GuiBounds(contentX, panel.y + theme.padding, contentWidth, rowHeight(target));
+        return optionLayout(panel, category).optionBounds(target, fallback);
     }
 
     private String groupHeaderAt(GuiBounds panel, int mouseX, int mouseY) {
@@ -721,27 +663,8 @@ public final class ConfigGui implements EditorContext {
         if (category == null) {
             return null;
         }
-        int contentX = contentX(panel);
-        int y = contentY(panel) - scroll;
-        int contentWidth = contentWidth(panel);
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
-            }
-            if (new GuiBounds(contentX, y, contentWidth, GROUP_HEADER_HEIGHT).contains(mouseX, mouseY)) {
-                return groupKey(group);
-            }
-            y += GROUP_HEADER_STEP;
-            if (!collapsed(group)) {
-                for (ConfigOption option : group.options()) {
-                    if (option.visible()) {
-                        y += rowHeight(option) + OPTION_GAP;
-                    }
-                }
-            }
-            y += theme.groupGap;
-        }
-        return null;
+        ConfigGroup group = optionLayout(panel, category).groupHeaderAt(mouseX, mouseY);
+        return group == null ? null : groupKey(group);
     }
 
     boolean interactive(ConfigOption target) {
@@ -753,20 +676,24 @@ public final class ConfigGui implements EditorContext {
         if (category == null) {
             return false;
         }
-        for (ConfigGroup group : category.groups()) {
-            if (!hasVisibleOptions(group)) {
-                continue;
-            }
-            if (collapsed(group)) {
-                continue;
-            }
-            for (ConfigOption option : group.options()) {
-                if (option == target && option.visible()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return optionLayout(category, 0, 0, 0, 0).containsVisibleOption(target);
+    }
+
+    private OptionListLayout optionLayout(GuiBounds panel, ConfigCategory category) {
+        return optionLayout(category, contentX(panel), contentY(panel), contentWidth(panel), scroll);
+    }
+
+    private OptionListLayout optionLayout(ConfigCategory category, int x, int y, int width, int scroll) {
+        return OptionListLayout.create(category, x, y, width, scroll, GROUP_HEADER_HEIGHT, GROUP_HEADER_STEP,
+                OPTION_GAP, theme.groupGap, new OptionListLayout.GroupState() {
+                    public boolean collapsed(ConfigGroup group) {
+                        return ConfigGui.this.collapsed(group);
+                    }
+                }, new OptionListLayout.RowSizing() {
+                    public int height(ConfigOption option) {
+                        return rowHeight(option);
+                    }
+                });
     }
 
     private GuiBounds categoryBounds(GuiBounds panel, int index) {
@@ -869,7 +796,7 @@ public final class ConfigGui implements EditorContext {
         renderer.fill(track.x + 1, track.y, track.x + 2, track.y + track.height, theme.borderDark);
         renderer.fill(track.x + track.width - 2, track.y, track.x + track.width - 1, track.y + track.height,
                 theme.borderDark);
-        boxed(renderer, thumb, thumbHovered ? theme.panelRaised : theme.panel,
+        GuiPrimitives.box(renderer, theme, thumb, thumbHovered ? theme.panelRaised : theme.panel,
                 thumbHovered ? theme.accent : theme.border);
     }
 
@@ -1114,44 +1041,8 @@ public final class ConfigGui implements EditorContext {
 
     void drawTextField(GuiRenderer renderer, GuiBounds bounds, String text, int cursor, int selectionStart,
             int selectionEnd, boolean hovered, boolean focused) {
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height,
-                hovered || focused ? theme.panelRaised : theme.panel);
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1,
-                focused ? theme.accent : theme.border);
-        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1,
-                focused ? theme.accent : theme.border);
-        renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width, bounds.y + bounds.height,
-                theme.borderDark);
-        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width, bounds.y + bounds.height,
-                theme.borderDark);
-        int textX = bounds.x + 5;
-        int textY = bounds.y + Math.max(2, (bounds.height - renderer.fontHeight()) / 2);
-        String clipped = clip(text, bounds.width - 10);
-        if (selectionStart != selectionEnd) {
-            int start = Math.max(0, Math.min(Math.min(selectionStart, selectionEnd), clipped.length()));
-            int end = Math.max(0, Math.min(Math.max(selectionStart, selectionEnd), clipped.length()));
-            int left = textX + renderer.textWidth(clipped.substring(0, start));
-            int right = textX + renderer.textWidth(clipped.substring(0, end));
-            renderer.fill(left, textY - 1, Math.max(left + 1, right), textY + renderer.fontHeight(),
-                    theme.accentDark);
-        }
-        renderer.text(clipped, textX, textY, theme.text);
-        if (focused && (System.currentTimeMillis() / 450L) % 2L == 0L) {
-            int shownCursor = Math.max(0, Math.min(cursor, clipped.length()));
-            int cursorX = textX + renderer.textWidth(clipped.substring(0, shownCursor));
-            renderer.fill(cursorX, textY - 1, cursorX + 1, textY + renderer.fontHeight(), theme.text);
-        }
-    }
-
-    private String clip(String text, int width) {
-        if (renderer == null || renderer.textWidth(text) <= width) {
-            return text;
-        }
-        String value = text;
-        while (value.length() > 0 && renderer.textWidth(value + "...") > width) {
-            value = value.substring(0, value.length() - 1);
-        }
-        return value + "...";
+        GuiPrimitives.textField(renderer, theme, bounds, text, cursor, selectionStart, selectionEnd, hovered, focused,
+                true, false);
     }
 
     private static String firstLine(String text) {
@@ -1198,47 +1089,9 @@ public final class ConfigGui implements EditorContext {
         return new GuiBounds((screenWidth - width) / 2, (screenHeight - height) / 2, width, height);
     }
 
-    private void frame(GuiRenderer renderer, int x, int y, int width, int height) {
-        renderer.fill(x, y, x + width, y + height, theme.panel);
-        renderer.fill(x, y, x + width - 1, y + 1, theme.border);
-        renderer.fill(x, y, x + 1, y + height - 1, theme.border);
-        renderer.fill(x + 1, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
-    }
-
-    private void boxed(GuiRenderer renderer, GuiBounds bounds, int fill, int border) {
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, fill);
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1, border);
-        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1, border);
-        renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width,
-                bounds.y + bounds.height, theme.borderDark);
-        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width,
-                bounds.y + bounds.height, theme.borderDark);
-    }
-
-    private void drawChevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {
-        if (direction == Direction.DOWN) {
-            renderer.fill(x, y, x + 7, y + 1, color);
-            renderer.fill(x + 1, y + 1, x + 6, y + 2, color);
-            renderer.fill(x + 2, y + 2, x + 5, y + 3, color);
-            renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
-            return;
-        }
-        if (direction == Direction.RIGHT) {
-            renderer.fill(x, y, x + 1, y + 7, color);
-            renderer.fill(x + 1, y + 1, x + 2, y + 6, color);
-            renderer.fill(x + 2, y + 2, x + 3, y + 5, color);
-            renderer.fill(x + 3, y + 3, x + 4, y + 4, color);
-        }
-    }
-
     private static boolean isHex(char character) {
         return (character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')
                 || (character >= 'A' && character <= 'F');
-    }
-
-    private enum Direction {
-        DOWN, RIGHT
     }
 
     public interface KeyNameProvider {

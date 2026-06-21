@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
+import re.tsuku.confikure.gui.GuiPrimitives;
 import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigOption;
@@ -58,7 +59,7 @@ public final class ColorPickerPopup {
             return;
         }
         GuiBounds picker = bounds(panel, option, host.optionBounds(panel, option), theme.padding);
-        frame(renderer, theme, picker.x, picker.y, picker.width, picker.height);
+        GuiPrimitives.frame(renderer, theme, picker);
         int color = color(option);
         State state = state(option);
         syncState(option, state);
@@ -72,19 +73,19 @@ public final class ColorPickerPopup {
                         0xFF000000 | hsvToRgb(state.hue, saturation, value));
             }
         }
-        drawBorder(renderer, theme, square.x, square.y, square.width, square.height, theme.border);
+        GuiPrimitives.border(renderer, theme, square, theme.border);
 
         GuiBounds hue = hueBounds(picker);
         for (int y = 0; y < HEIGHT; y += 2) {
             renderer.fill(hue.x, hue.y + y, hue.x + hue.width, hue.y + y + 2,
                     0xFF000000 | hsvToRgb(y / (float) HEIGHT, 1.0F, 1.0F));
         }
-        drawBorder(renderer, theme, hue.x, hue.y, hue.width, hue.height, theme.border);
+        GuiPrimitives.border(renderer, theme, hue, theme.border);
 
         if (option.colorAlpha()) {
             GuiBounds alpha = alphaBounds(picker);
             drawAlphaTrack(renderer, theme, alpha.x, alpha.y, color);
-            drawBorder(renderer, theme, alpha.x, alpha.y, alpha.width, alpha.height, theme.border);
+            GuiPrimitives.border(renderer, theme, alpha, theme.border);
         }
 
         drawPickerHandle(renderer, theme, square.x + Math.round(state.saturation * SQUARE_WIDTH),
@@ -97,7 +98,7 @@ public final class ColorPickerPopup {
         }
 
         GuiBounds preview = previewBounds(picker);
-        frame(renderer, theme, preview.x, preview.y, preview.width, preview.height);
+        GuiPrimitives.frame(renderer, theme, preview);
         renderer.fill(preview.x + 3, preview.y + 3, preview.x + preview.width - 3, preview.y + preview.height - 3,
                 theme.slot);
         renderer.fill(preview.x + 4, preview.y + 4, preview.x + preview.width - 4, preview.y + preview.height - 4,
@@ -282,7 +283,7 @@ public final class ColorPickerPopup {
 
     private void drawPickerHandle(GuiRenderer renderer, ConfigTheme theme, int centerX, int centerY) {
         GuiBounds handle = new GuiBounds(centerX - 3, centerY - 3, 7, 7);
-        boxed(renderer, theme, handle, theme.panelRaised, theme.text);
+        GuiPrimitives.box(renderer, theme, handle, theme.panelRaised, theme.text);
         renderer.fill(handle.x + 2, handle.y + 2, handle.x + handle.width - 2, handle.y + handle.height - 2,
                 theme.borderDark);
     }
@@ -293,7 +294,7 @@ public final class ColorPickerPopup {
         int y = centerY - 3;
         int fill = enabled ? theme.panelRaised : theme.panel;
         int border = enabled ? theme.border : theme.borderDark;
-        boxed(renderer, theme, new GuiBounds(x, y, TRACK_WIDTH + 4, 7), fill, border);
+        GuiPrimitives.box(renderer, theme, new GuiBounds(x, y, TRACK_WIDTH + 4, 7), fill, border);
     }
 
     private void drawAlphaTrack(GuiRenderer renderer, ConfigTheme theme, int x, int y, int color) {
@@ -303,31 +304,6 @@ public final class ColorPickerPopup {
             int alpha = Math.round(offset / (float) HEIGHT * 255.0F);
             renderer.fill(x, y + offset, x + TRACK_WIDTH, y + offset + 2, (alpha << 24) | rgb);
         }
-    }
-
-    private void drawBorder(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height, int color) {
-        renderer.fill(x, y, x + width, y + 1, color);
-        renderer.fill(x, y, x + 1, y + height, color);
-        renderer.fill(x, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x + width - 1, y, x + width, y + height, theme.borderDark);
-    }
-
-    private void frame(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height) {
-        renderer.fill(x, y, x + width, y + height, theme.panel);
-        renderer.fill(x, y, x + width - 1, y + 1, theme.border);
-        renderer.fill(x, y, x + 1, y + height - 1, theme.border);
-        renderer.fill(x + 1, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
-    }
-
-    private void boxed(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, int fill, int border) {
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, fill);
-        renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1, border);
-        renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height - 1, border);
-        renderer.fill(bounds.x + 1, bounds.y + bounds.height - 1, bounds.x + bounds.width,
-                bounds.y + bounds.height, theme.borderDark);
-        renderer.fill(bounds.x + bounds.width - 1, bounds.y + 1, bounds.x + bounds.width,
-                bounds.y + bounds.height, theme.borderDark);
     }
 
     private static int color(ConfigOption option) {
