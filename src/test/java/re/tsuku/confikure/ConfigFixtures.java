@@ -89,7 +89,7 @@ public final class ConfigFixtures {
         @Option(name = "order", order = 6)
         public List<String> order = Arrays.asList("one", "two");
 
-        @Button(name = "reset cache", order = 7)
+        @Button(name = "reset cache", label = "reset", order = 7)
         public void resetCache() {
             reset = true;
         }
@@ -124,6 +124,18 @@ public final class ConfigFixtures {
     public static final class InvalidButtonConfig {
         @Category(name = "general")
         public final InvalidButtons general = new InvalidButtons();
+    }
+
+    @Config(name = "default button label")
+    public static final class DefaultButtonLabelConfig {
+        @Category(name = "general")
+        public final DefaultButtonLabels general = new DefaultButtonLabels();
+    }
+
+    public static final class DefaultButtonLabels {
+        @Button(name = "refresh")
+        public void refresh() {
+        }
     }
 
     public static final class InvalidButtons {

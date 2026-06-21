@@ -25,6 +25,7 @@ public final class ConfigOption {
     private final boolean keybindClearable;
     private final boolean keybindResetOnClear;
     private final boolean colorAlpha;
+    private final String buttonLabel;
     private final List<OptionListener> listeners = new ArrayList<>();
     private OptionCondition visibleWhen = always();
     private OptionCondition enabledWhen = always();
@@ -46,6 +47,13 @@ public final class ConfigOption {
     public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
             OptionAccess access, Object defaultValue, NumberRange range, List<String> choices, List<String> searchTags,
             boolean keybindClearable, boolean keybindResetOnClear, boolean colorAlpha) {
+        this(id, name, description, groupId, order, type, access, defaultValue, range, choices, searchTags,
+                keybindClearable, keybindResetOnClear, colorAlpha, "run");
+    }
+
+    public ConfigOption(String id, String name, String description, String groupId, int order, EditorType type,
+            OptionAccess access, Object defaultValue, NumberRange range, List<String> choices, List<String> searchTags,
+            boolean keybindClearable, boolean keybindResetOnClear, boolean colorAlpha, String buttonLabel) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -60,6 +68,7 @@ public final class ConfigOption {
         this.keybindClearable = keybindClearable;
         this.keybindResetOnClear = keybindResetOnClear;
         this.colorAlpha = colorAlpha;
+        this.buttonLabel = buttonLabel == null || buttonLabel.isEmpty() ? "run" : buttonLabel;
     }
 
     /**
@@ -158,6 +167,13 @@ public final class ConfigOption {
      */
     public boolean colorAlpha() {
         return colorAlpha;
+    }
+
+    /**
+     * returns the text shown inside a button option's control.
+     */
+    public String buttonLabel() {
+        return buttonLabel;
     }
 
     /**

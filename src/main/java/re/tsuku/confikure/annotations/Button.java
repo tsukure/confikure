@@ -27,6 +27,11 @@ public @interface Button {
     String description() default "";
 
     /**
+     * text shown inside the clickable button.
+     */
+    String label() default "run";
+
+    /**
      * group name or id that should contain the action.
      */
     String group() default "";

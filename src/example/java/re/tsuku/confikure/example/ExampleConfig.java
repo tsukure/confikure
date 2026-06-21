@@ -37,7 +37,7 @@ public final class ExampleConfig {
         @Range(min = 0.0D, max = 3.0D, step = 0.25D)
         public double speed = 1.0D;
 
-        @Button(name = "reset speed", description = "sets speed back to one", order = 1)
+        @Button(name = "reset speed", description = "sets speed back to one", label = "reset", order = 1)
         public void resetSpeed() {
             speed = 1.0D;
         }

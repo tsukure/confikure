@@ -12,7 +12,8 @@ final class ButtonEditor implements OptionEditor {
         GuiBounds control = ControlLayout.button(bounds);
         EditorDraw.frame(renderer, control.x, control.y, control.width, control.height, theme, context.hovered(option),
                 context.active(option), option.enabled());
-        renderer.centeredText("run", control.x, control.y + 5, control.width,
+        renderer.centeredText(EditorDraw.clip(option.buttonLabel(), renderer, control.width - 8), control.x,
+                control.y + 5, control.width,
                 option.enabled() ? theme.text : theme.disabledText);
     }
 

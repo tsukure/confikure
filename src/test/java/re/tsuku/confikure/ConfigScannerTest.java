@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.Test;
 import re.tsuku.confikure.ConfigFixtures.ChoiceConfig;
 import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
+import re.tsuku.confikure.ConfigFixtures.DefaultButtonLabelConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateCategoryConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateGroupConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateOptionConfig;
@@ -102,9 +103,17 @@ public final class ConfigScannerTest {
 
         assertEquals(Arrays.asList("simple", "fancy"), mode.choices());
         assertEquals("must be one of [simple, fancy]", mode.validate("missing"));
+        assertEquals("reset", action.buttonLabel());
 
         action.press();
         assertTrue(config.visuals.reset);
+    }
+
+    @Test
+    public void buttonsDefaultToRunLabel() {
+        ConfigOption action = Confikure.scan(new DefaultButtonLabelConfig()).option("refresh");
+
+        assertEquals("run", action.buttonLabel());
     }
 
     @Test

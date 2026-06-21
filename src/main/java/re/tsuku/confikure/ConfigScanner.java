@@ -177,7 +177,7 @@ public final class ConfigScanner {
         String groupId = button.group().isEmpty() ? DEFAULT_GROUP_ID : stableId(button.group());
         return new ConfigOption(id, button.name(), button.description(), groupId, button.order(), EditorType.BUTTON,
                 new ButtonOptionAccess(method, owner), null, null, Collections.<String>emptyList(),
-                searchTags(method.getAnnotation(SearchTag.class)));
+                searchTags(method.getAnnotation(SearchTag.class)), true, false, true, button.label());
     }
 
     private static EditorType editorType(Field field, EditorType requested) {
