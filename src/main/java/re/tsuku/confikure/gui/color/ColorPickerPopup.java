@@ -9,6 +9,9 @@ import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigOption;
 
+/**
+ * pop-up color picker used by the default color editor.
+ */
 public final class ColorPickerPopup {
     private static final int PADDING = 8;
     private static final int SQUARE_WIDTH = 112;
@@ -24,32 +27,53 @@ public final class ColorPickerPopup {
     private ConfigOption option;
     private Drag drag = Drag.NONE;
 
+    /**
+     * returns whether any color picker is open.
+     */
     public boolean isOpen() {
         return option != null;
     }
 
+    /**
+     * returns whether the picker is open for an option.
+     */
     public boolean isOpen(ConfigOption option) {
         return this.option == option;
     }
 
+    /**
+     * returns the option currently owned by the picker.
+     */
     public ConfigOption option() {
         return option;
     }
 
+    /**
+     * opens the picker for an option.
+     */
     public void open(ConfigOption option) {
         this.option = option;
         drag = Drag.NONE;
     }
 
+    /**
+     * closes the picker.
+     */
     public void close() {
         option = null;
         drag = Drag.NONE;
     }
 
+    /**
+     * stops any active picker drag.
+     */
     public void stopDrag() {
         drag = Drag.NONE;
     }
 
+    /**
+     * renders the picker if it is open.
+     */
     public void render(GuiRenderer renderer, ConfigTheme theme, GuiBounds panel, ColorPickerHost host) {
         if (option == null) {
             return;
@@ -111,6 +135,11 @@ public final class ColorPickerPopup {
                 host.focused(option));
     }
 
+    /**
+     * handles a mouse press or drag for the picker.
+     *
+     * @return {@code true} when the picker consumed the mouse input
+     */
     public boolean handleMouse(GuiBounds panel, int mouseX, int mouseY, boolean pressed, ColorPickerHost host,
             int padding) {
         if (option == null) {
@@ -163,14 +192,23 @@ public final class ColorPickerPopup {
         return true;
     }
 
+    /**
+     * returns hex text field bounds for an option row.
+     */
     public GuiBounds hexBounds(GuiBounds panel, ConfigOption option, GuiBounds row, int padding) {
         return hexBounds(bounds(panel, option, row, padding));
     }
 
+    /**
+     * formats a color option as {@code #RRGGBB} or {@code #RRGGBBAA}.
+     */
     public static String format(ConfigOption option) {
         return hex(color(option), option.colorAlpha());
     }
 
+    /**
+     * parses {@code #RRGGBB} or {@code #RRGGBBAA} text into a color option.
+     */
     public static void parse(ConfigOption option, String text) {
         String value = text == null ? "" : text.trim();
         if (value.startsWith("#")) {

@@ -8,12 +8,27 @@ import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigGroup;
 import re.tsuku.confikure.model.ConfigOption;
 
+/**
+ * computed layout for visible groups and option rows.
+ */
 public final class OptionListLayout {
+    /**
+     * supplies collapsed state for groups during layout.
+     */
     public interface GroupState {
+        /**
+         * returns whether a group is collapsed.
+         */
         boolean collapsed(ConfigGroup group);
     }
 
+    /**
+     * supplies row height for each visible option.
+     */
     public interface RowSizing {
+        /**
+         * returns row height in pixels.
+         */
         int height(ConfigOption option);
     }
 
@@ -27,6 +42,9 @@ public final class OptionListLayout {
         this.contentHeight = contentHeight;
     }
 
+    /**
+     * computes layout for a category at a scroll offset.
+     */
     public static OptionListLayout create(ConfigCategory category, int x, int y, int width, int scroll,
             int groupHeaderHeight, int groupHeaderStep, int optionGap, int groupGap, GroupState groupState,
             RowSizing rowSizing) {
@@ -66,14 +84,23 @@ public final class OptionListLayout {
         return new OptionListLayout(groups, rows, contentHeight);
     }
 
+    /**
+     * returns visible group blocks.
+     */
     public List<GroupBlock> groups() {
         return groups;
     }
 
+    /**
+     * returns total scrollable content height.
+     */
     public int contentHeight() {
         return contentHeight;
     }
 
+    /**
+     * finds the option row containing a point.
+     */
     public ConfigOption optionAt(int mouseX, int mouseY) {
         for (OptionRow row : rows) {
             if (row.bounds().contains(mouseX, mouseY)) {
@@ -83,6 +110,9 @@ public final class OptionListLayout {
         return null;
     }
 
+    /**
+     * finds the bounds for an option or returns a fallback.
+     */
     public GuiBounds optionBounds(ConfigOption target, GuiBounds fallback) {
         for (OptionRow row : rows) {
             if (row.option() == target) {
@@ -92,6 +122,9 @@ public final class OptionListLayout {
         return fallback;
     }
 
+    /**
+     * finds the group header containing a point.
+     */
     public ConfigGroup groupHeaderAt(int mouseX, int mouseY) {
         for (GroupBlock group : groups) {
             if (group.header().contains(mouseX, mouseY)) {
@@ -101,6 +134,9 @@ public final class OptionListLayout {
         return null;
     }
 
+    /**
+     * returns whether an option is present in the current visible rows.
+     */
     public boolean containsVisibleOption(ConfigOption target) {
         for (OptionRow row : rows) {
             if (row.option() == target) {
@@ -132,6 +168,9 @@ public final class OptionListLayout {
         return false;
     }
 
+    /**
+     * layout data for one visible group.
+     */
     public static final class GroupBlock {
         private final ConfigGroup group;
         private final GuiBounds shell;
@@ -148,27 +187,45 @@ public final class OptionListLayout {
             this.collapsed = collapsed;
         }
 
+        /**
+         * returns the group metadata.
+         */
         public ConfigGroup group() {
             return group;
         }
 
+        /**
+         * returns the full group shell bounds.
+         */
         public GuiBounds shell() {
             return shell;
         }
 
+        /**
+         * returns the group header bounds.
+         */
         public GuiBounds header() {
             return header;
         }
 
+        /**
+         * returns visible option rows in this group.
+         */
         public List<OptionRow> rows() {
             return rows;
         }
 
+        /**
+         * returns whether this group is collapsed.
+         */
         public boolean collapsed() {
             return collapsed;
         }
     }
 
+    /**
+     * layout data for one visible option row.
+     */
     public static final class OptionRow {
         private final ConfigOption option;
         private final GuiBounds bounds;
@@ -178,10 +235,16 @@ public final class OptionListLayout {
             this.bounds = bounds;
         }
 
+        /**
+         * returns the option metadata.
+         */
         public ConfigOption option() {
             return option;
         }
 
+        /**
+         * returns row bounds.
+         */
         public GuiBounds bounds() {
             return bounds;
         }

@@ -6,10 +6,16 @@ import java.util.Locale;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.NumberRange;
 
+/**
+ * formats numeric option values for compact gui display.
+ */
 public final class NumberDisplay {
     private NumberDisplay() {
     }
 
+    /**
+     * formats an option value while hiding floating point artifacts.
+     */
     public static String format(ConfigOption option) {
         Object value = option.get();
         if (!(value instanceof Number)) {

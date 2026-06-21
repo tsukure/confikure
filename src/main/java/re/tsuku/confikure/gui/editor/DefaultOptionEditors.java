@@ -4,10 +4,18 @@ import java.util.HashMap;
 import java.util.Map;
 import re.tsuku.confikure.model.EditorType;
 
+/**
+ * factory for the editor registry used by the default gui.
+ */
 public final class DefaultOptionEditors {
     private DefaultOptionEditors() {
     }
 
+    /**
+     * creates a new map containing the built-in editors.
+     *
+     * @return mutable editor registry keyed by editor type
+     */
     public static Map<EditorType, OptionEditor> create() {
         Map<EditorType, OptionEditor> editors = new HashMap<>();
         editors.put(EditorType.BOOLEAN, new SwitchEditor());

@@ -24,10 +24,16 @@ public final class ForgeConfigGui {
     private ForgeGuiRenderer renderer;
     private boolean loaded;
 
+    /**
+     * creates a forge gui adapter with default gui configuration.
+     */
     public ForgeConfigGui(ConfigDefinition definition, Path path, ConfigStore store) {
         this(definition, path, store, null);
     }
 
+    /**
+     * creates a forge gui adapter with optional gui customization.
+     */
     public ForgeConfigGui(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
         this.definition = Objects.requireNonNull(definition, "definition");
@@ -36,10 +42,16 @@ public final class ForgeConfigGui {
         this.configurator = configurator;
     }
 
+    /**
+     * returns the core gui after initialization.
+     */
     public ConfigGui gui() {
         return gui;
     }
 
+    /**
+     * initializes the core gui and loads persisted values.
+     */
     public void init(Minecraft minecraft) {
         Objects.requireNonNull(minecraft, "minecraft");
         gui = new ConfigGui(definition);
@@ -57,6 +69,9 @@ public final class ForgeConfigGui {
         loadOnce();
     }
 
+    /**
+     * renders the gui and forwards active mouse dragging.
+     */
     public void render(Minecraft minecraft, int width, int height, int mouseX, int mouseY) {
         ensureInitialized(minecraft);
         if (Mouse.isButtonDown(0)) {
@@ -65,30 +80,48 @@ public final class ForgeConfigGui {
         gui.render(renderer, width, height, mouseX, mouseY);
     }
 
+    /**
+     * forwards a primary mouse click.
+     */
     public void click(int width, int height, int mouseX, int mouseY) {
         gui.click(width, height, mouseX, mouseY);
     }
 
+    /**
+     * forwards a primary mouse drag.
+     */
     public void drag(int width, int height, int mouseX, int mouseY) {
         gui.drag(width, height, mouseX, mouseY);
     }
 
+    /**
+     * forwards a primary mouse release.
+     */
     public void release() {
         gui.release();
     }
 
+    /**
+     * forwards keyboard input with current shift and control state.
+     */
     public boolean keyTyped(char typedChar, int keyCode) {
         boolean shift = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
         boolean control = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
         return gui.keyTyped(typedChar, keyCode, shift, control);
     }
 
+    /**
+     * forwards mouse wheel movement.
+     */
     public void mouseWheel(int wheel) {
         if (wheel != 0) {
             gui.scroll(wheel < 0 ? 18 : -18);
         }
     }
 
+    /**
+     * saves values and disables keyboard repeat events.
+     */
     public void close() {
         Keyboard.enableRepeatEvents(false);
         if (path != null) {

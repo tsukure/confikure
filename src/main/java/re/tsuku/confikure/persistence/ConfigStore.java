@@ -30,10 +30,23 @@ public final class ConfigStore {
     private static final Type MAP_TYPE = new TypeReference<Map<String, Object>>() {
     }.getType();
 
+    /**
+     * saves config values to a json file.
+     */
     public void save(ConfigDefinition definition, Path path) throws IOException {
         save(definition, null, path);
     }
 
+    /**
+     * saves config values and optional gui state to a json file.
+     *
+     * @param definition
+     *            config definition to save
+     * @param guiState
+     *            gui state to save, or {@code null} for config values only
+     * @param path
+     *            target file path
+     */
     public void save(ConfigDefinition definition, ConfigGuiState guiState, Path path) throws IOException {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("version", definition.version());
@@ -73,10 +86,26 @@ public final class ConfigStore {
         }
     }
 
+    /**
+     * loads config values from a json file.
+     *
+     * @return {@code true} when a matching config file was loaded
+     */
     public boolean load(ConfigDefinition definition, Path path) throws IOException {
         return load(definition, path, null);
     }
 
+    /**
+     * loads config values and optional gui state from a json file.
+     *
+     * @param definition
+     *            config definition to load into
+     * @param path
+     *            source file path
+     * @param guiState
+     *            gui state to load into, or {@code null} to ignore gui state
+     * @return {@code true} when a matching config file was loaded
+     */
     public boolean load(ConfigDefinition definition, Path path, ConfigGuiState guiState) throws IOException {
         if (!Files.isRegularFile(path)) {
             return false;

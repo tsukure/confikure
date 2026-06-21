@@ -62,74 +62,132 @@ public final class ConfigOption {
         this.colorAlpha = colorAlpha;
     }
 
+    /**
+     * returns the stable option id used by persistence.
+     */
     public String id() {
         return id;
     }
 
+    /**
+     * returns the display label.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * returns the helper text shown under the label.
+     */
     public String description() {
         return description;
     }
 
+    /**
+     * returns the stable id of the containing group.
+     */
     public String groupId() {
         return groupId;
     }
 
+    /**
+     * returns the configured sort position.
+     */
     public int order() {
         return order;
     }
 
+    /**
+     * returns the editor type used by the default gui.
+     */
     public EditorType type() {
         return type;
     }
 
+    /**
+     * returns the underlying value type.
+     */
     public Class<?> valueType() {
         return access.valueType();
     }
 
+    /**
+     * returns a defensive copy of the value captured during scanning.
+     */
     public Object defaultValue() {
         return copyValue(defaultValue);
     }
 
+    /**
+     * returns the numeric range, or {@code null} when this option is not ranged.
+     */
     public NumberRange range() {
         return range;
     }
 
+    /**
+     * returns the allowed choice values for dropdown and mode editors.
+     */
     public List<String> choices() {
         return choices;
     }
 
+    /**
+     * returns additional search aliases associated with this option.
+     */
     public List<String> searchTags() {
         return searchTags;
     }
 
+    /**
+     * returns whether a keybind option can be cleared from the gui.
+     */
     public boolean keybindClearable() {
         return keybindClearable;
     }
 
+    /**
+     * returns whether clearing a keybind restores the default value.
+     */
     public boolean keybindResetOnClear() {
         return keybindResetOnClear;
     }
 
+    /**
+     * returns whether a color option exposes alpha.
+     */
     public boolean colorAlpha() {
         return colorAlpha;
     }
 
+    /**
+     * reads the current value from the underlying config object.
+     */
     public Object get() {
         return access.get();
     }
 
+    /**
+     * returns whether the option should currently be shown.
+     */
     public boolean visible() {
         return visibleWhen.test();
     }
 
+    /**
+     * returns whether the option should currently accept input.
+     */
     public boolean enabled() {
         return enabledWhen.test();
     }
 
+    /**
+     * sets the condition used to decide whether the option is visible.
+     *
+     * @param condition
+     *            visibility predicate
+     * @return this option
+     */
     public ConfigOption visibleWhen(OptionCondition condition) {
         if (condition == null) {
             throw new NullPointerException("condition");
@@ -138,6 +196,13 @@ public final class ConfigOption {
         return this;
     }
 
+    /**
+     * sets the condition used to decide whether the option is enabled.
+     *
+     * @param condition
+     *            enabled predicate
+     * @return this option
+     */
     public ConfigOption enabledWhen(OptionCondition condition) {
         if (condition == null) {
             throw new NullPointerException("condition");
@@ -146,6 +211,12 @@ public final class ConfigOption {
         return this;
     }
 
+    /**
+     * coerces and writes a new value to the underlying config object.
+     *
+     * @param value
+     *            new value
+     */
     public void set(Object value) {
         Object oldValue = get();
         Object nextValue = coerce(value);
@@ -156,6 +227,9 @@ public final class ConfigOption {
         }
     }
 
+    /**
+     * invokes a button option.
+     */
     public void press() {
         if (type != EditorType.BUTTON) {
             throw new IllegalStateException("option is not a button: " + id);
@@ -163,16 +237,29 @@ public final class ConfigOption {
         access.set(null);
     }
 
+    /**
+     * returns whether the current value differs from the scanned default.
+     */
     public boolean dirty() {
         return !valueEquals(defaultValue, get());
     }
 
+    /**
+     * restores the scanned default value for editable options.
+     */
     public void reset() {
         if (type != EditorType.BUTTON && type != EditorType.INFO) {
             set(copyValue(defaultValue));
         }
     }
 
+    /**
+     * validates a value against choice and range metadata.
+     *
+     * @param value
+     *            candidate value
+     * @return error text, or {@code null} when valid
+     */
     public String validate(Object value) {
         if ((type == EditorType.DROPDOWN || type == EditorType.MODE) && !choices.isEmpty()
                 && !choices.contains(String.valueOf(value))) {
@@ -187,6 +274,12 @@ public final class ConfigOption {
         return null;
     }
 
+    /**
+     * registers a listener that is called after a successful value change.
+     *
+     * @param listener
+     *            listener to add
+     */
     public void addListener(OptionListener listener) {
         if (listener == null) {
             throw new NullPointerException("listener");

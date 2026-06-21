@@ -2,6 +2,9 @@ package re.tsuku.confikure.model;
 
 import java.lang.reflect.Field;
 
+/**
+ * {@link OptionAccess} implementation backed by a reflected field.
+ */
 public final class FieldOptionAccess implements OptionAccess {
     private final Field field;
     private final Object owner;
@@ -11,10 +14,16 @@ public final class FieldOptionAccess implements OptionAccess {
         this.owner = owner;
     }
 
+    /**
+     * returns the field type.
+     */
     public Class<?> valueType() {
         return field.getType();
     }
 
+    /**
+     * reads the field value from the owner.
+     */
     public Object get() {
         try {
             return field.get(owner);
@@ -23,6 +32,9 @@ public final class FieldOptionAccess implements OptionAccess {
         }
     }
 
+    /**
+     * writes the field value on the owner.
+     */
     public void set(Object value) {
         try {
             field.set(owner, value);

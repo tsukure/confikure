@@ -70,6 +70,16 @@ public final class ConfigGui implements EditorContext {
         this(definition, new ConfigTheme(), DefaultOptionEditors.create());
     }
 
+    /**
+     * creates a gui with a custom theme and editor registry.
+     *
+     * @param definition
+     *            scanned config definition
+     * @param theme
+     *            gui theme
+     * @param editors
+     *            editor registry keyed by editor type
+     */
     public ConfigGui(ConfigDefinition definition, ConfigTheme theme, Map<EditorType, OptionEditor> editors) {
         if (definition == null) {
             throw new NullPointerException("definition");
@@ -79,6 +89,12 @@ public final class ConfigGui implements EditorContext {
         this.editors = editors;
     }
 
+    /**
+     * sets the provider used to display key names.
+     *
+     * @param keyNameProvider
+     *            key name provider
+     */
     public void keyNameProvider(KeyNameProvider keyNameProvider) {
         if (keyNameProvider == null) {
             throw new NullPointerException("keyNameProvider");
@@ -86,22 +102,49 @@ public final class ConfigGui implements EditorContext {
         this.keyNameProvider = keyNameProvider;
     }
 
+    /**
+     * returns the scanned config definition shown by this gui.
+     */
     public ConfigDefinition definition() {
         return definition;
     }
 
+    /**
+     * sets a custom renderer for the sidebar header.
+     *
+     * @param sidebarHeader
+     *            header renderer, or {@code null} to use the default
+     */
     public void sidebarHeader(SidebarHeader sidebarHeader) {
         this.sidebarHeader = sidebarHeader;
     }
 
+    /**
+     * sets the action run when the close button is clicked.
+     *
+     * @param closeHandler
+     *            close action
+     */
     public void closeHandler(Runnable closeHandler) {
         this.closeHandler = closeHandler;
     }
 
+    /**
+     * controls whether the gui draws its own full-screen backdrop.
+     *
+     * @param drawBackdrop
+     *            {@code true} to draw the backdrop color
+     */
     public void drawBackdrop(boolean drawBackdrop) {
         this.drawBackdrop = drawBackdrop;
     }
 
+    /**
+     * sets a fixed theme and clears any theme supplier.
+     *
+     * @param theme
+     *            theme to use
+     */
     public void theme(ConfigTheme theme) {
         if (theme == null) {
             throw new NullPointerException("theme");
@@ -110,19 +153,37 @@ public final class ConfigGui implements EditorContext {
         this.themeSupplier = null;
     }
 
+    /**
+     * sets a dynamic theme supplier evaluated before each render.
+     *
+     * @param themeSupplier
+     *            supplier to use, or {@code null} to keep the current theme
+     */
     public void themeSupplier(Supplier<ConfigTheme> themeSupplier) {
         this.themeSupplier = themeSupplier;
     }
 
+    /**
+     * returns the selected category index.
+     */
     public int selectedCategory() {
         return selectedCategory;
     }
 
+    /**
+     * returns the selected category id, or {@code null} when there are no categories.
+     */
     public String selectedCategoryId() {
         ConfigCategory category = category();
         return category == null ? null : category.id();
     }
 
+    /**
+     * selects a category by index and resets transient row state.
+     *
+     * @param selectedCategory
+     *            category index
+     */
     public void selectedCategory(int selectedCategory) {
         if (definition.categories().isEmpty()) {
             this.selectedCategory = 0;
@@ -135,6 +196,12 @@ public final class ConfigGui implements EditorContext {
         closePopups();
     }
 
+    /**
+     * selects a category by stable id.
+     *
+     * @param categoryId
+     *            category id, or {@code null} to select the first category
+     */
     public void selectedCategory(String categoryId) {
         if (categoryId == null) {
             selectedCategory(0);
@@ -149,10 +216,29 @@ public final class ConfigGui implements EditorContext {
         selectedCategory(0);
     }
 
+    /**
+     * returns whether a group is collapsed.
+     *
+     * @param categoryId
+     *            category id
+     * @param groupId
+     *            group id
+     * @return {@code true} when collapsed
+     */
     public boolean groupCollapsed(String categoryId, String groupId) {
         return Boolean.TRUE.equals(collapsedGroups.get(ConfigGuiState.groupKey(categoryId, groupId)));
     }
 
+    /**
+     * sets whether a group is collapsed.
+     *
+     * @param categoryId
+     *            category id
+     * @param groupId
+     *            group id
+     * @param collapsed
+     *            collapsed state
+     */
     public void groupCollapsed(String categoryId, String groupId, boolean collapsed) {
         String key = ConfigGuiState.groupKey(categoryId, groupId);
         if (collapsed) {
@@ -163,6 +249,9 @@ public final class ConfigGui implements EditorContext {
         scroll = 0;
     }
 
+    /**
+     * captures persistable gui state such as selected category and collapsed groups.
+     */
     public ConfigGuiState state() {
         ConfigGuiState state = new ConfigGuiState();
         state.selectedCategoryId(selectedCategoryId());
@@ -176,6 +265,12 @@ public final class ConfigGui implements EditorContext {
         return state;
     }
 
+    /**
+     * applies previously captured gui state.
+     *
+     * @param state
+     *            state to apply
+     */
     public void state(ConfigGuiState state) {
         if (state == null) {
             return;
@@ -192,14 +287,26 @@ public final class ConfigGui implements EditorContext {
         scroll = 0;
     }
 
+    /**
+     * returns the current vertical scroll offset.
+     */
     public int scroll() {
         return scroll;
     }
 
+    /**
+     * scrolls the current category by a delta.
+     *
+     * @param amount
+     *            scroll delta in pixels
+     */
     public void scroll(int amount) {
         this.scroll = Math.max(0, this.scroll + amount);
     }
 
+    /**
+     * renders the gui.
+     */
     public void render(GuiRenderer renderer, int screenWidth, int screenHeight, int mouseX, int mouseY) {
         if (themeSupplier != null) {
             ConfigTheme supplied = themeSupplier.get();
@@ -226,6 +333,9 @@ public final class ConfigGui implements EditorContext {
         drawCategory(renderer, panel, mouseX, mouseY);
     }
 
+    /**
+     * forwards a primary mouse click to the gui.
+     */
     public void click(int screenWidth, int screenHeight, int mouseX, int mouseY) {
         GuiBounds panel = panel(screenWidth, screenHeight);
         if (openDropdown != null && handleDropdownClick(panel, mouseX, mouseY)) {
@@ -323,6 +433,9 @@ public final class ConfigGui implements EditorContext {
         editor(option).click(option, optionBounds(panel, option), mouseX, mouseY);
     }
 
+    /**
+     * forwards a primary mouse drag to the gui.
+     */
     public void drag(int screenWidth, int screenHeight, int mouseX, int mouseY) {
         GuiBounds panel = panel(screenWidth, screenHeight);
         if (draggingScrollbar) {
@@ -349,16 +462,29 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
+    /**
+     * clears active mouse interaction state.
+     */
     public void release() {
         activeOption = null;
         colorPicker.stopDrag();
         draggingScrollbar = false;
     }
 
+    /**
+     * forwards a typed key without modifier state.
+     *
+     * @return {@code true} when the gui consumed the key
+     */
     public boolean keyTyped(char typedChar, int keyCode) {
         return keyTyped(typedChar, keyCode, false, false);
     }
 
+    /**
+     * forwards a typed key with modifier state.
+     *
+     * @return {@code true} when the gui consumed the key
+     */
     public boolean keyTyped(char typedChar, int keyCode, boolean shift, boolean control) {
         if ((keyCode == 1 || keyCode == 28) && (openDropdown != null || colorPicker.isOpen())
                 && focusedOption == null) {
@@ -399,26 +525,44 @@ public final class ConfigGui implements EditorContext {
         return false;
     }
 
+    /**
+     * returns whether an option's component is hovered.
+     */
     public boolean hovered(ConfigOption option) {
         return option == hoveredOption;
     }
 
+    /**
+     * returns whether an option has keyboard focus.
+     */
     public boolean focused(ConfigOption option) {
         return option == focusedOption;
     }
 
+    /**
+     * returns whether an option is currently being interacted with.
+     */
     public boolean active(ConfigOption option) {
         return option == activeOption;
     }
 
+    /**
+     * returns whether an option's dropdown is open.
+     */
     public boolean dropdownOpen(ConfigOption option) {
         return option == openDropdown;
     }
 
+    /**
+     * returns whether an option's color picker is open.
+     */
     public boolean colorPickerOpen(ConfigOption option) {
         return colorPicker.isOpen(option);
     }
 
+    /**
+     * returns the display value used by the default editor for an option.
+     */
     public String displayValue(ConfigOption option) {
         if (option.type() == EditorType.KEYBIND && option.get() instanceof Number) {
             return keyNameProvider.name(((Number) option.get()).intValue());
@@ -437,10 +581,16 @@ public final class ConfigGui implements EditorContext {
         return String.valueOf(option.get());
     }
 
+    /**
+     * returns the last mouse x value passed to render.
+     */
     public int mouseX() {
         return mouseX;
     }
 
+    /**
+     * returns the last mouse y value passed to render.
+     */
     public int mouseY() {
         return mouseY;
     }
@@ -458,14 +608,23 @@ public final class ConfigGui implements EditorContext {
         return colorPicker.hexBounds(panel, option, optionBounds(panel, option), theme.padding);
     }
 
+    /**
+     * returns the text cursor position for an option editor.
+     */
     public int textCursor(ConfigOption option) {
         return textState(option).cursor();
     }
 
+    /**
+     * returns the text selection start for an option editor.
+     */
     public int textSelectionStart(ConfigOption option) {
         return textState(option).selectionStart();
     }
 
+    /**
+     * returns the text selection end for an option editor.
+     */
     public int textSelectionEnd(ConfigOption option) {
         return textState(option).selectionEnd();
     }
@@ -1157,10 +1316,30 @@ public final class ConfigGui implements EditorContext {
     }
 
     public interface KeyNameProvider {
+        /**
+         * formats a key code for display.
+         *
+         * @param keyCode
+         *            raw key code
+         * @return display name
+         */
         String name(int keyCode);
     }
 
+    /**
+     * renderer for custom sidebar header content.
+     */
     public interface SidebarHeader {
+        /**
+         * renders the sidebar header.
+         *
+         * @param renderer
+         *            gui renderer
+         * @param bounds
+         *            header bounds
+         * @param theme
+         *            active theme
+         */
         void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme);
     }
 }

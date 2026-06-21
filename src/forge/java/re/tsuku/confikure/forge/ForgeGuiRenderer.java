@@ -17,6 +17,9 @@ public final class ForgeGuiRenderer implements GuiRenderer {
     private final Minecraft minecraft;
     private final Deque<int[]> clips = new ArrayDeque<int[]>();
 
+    /**
+     * creates a renderer backed by the given minecraft client.
+     */
     public ForgeGuiRenderer(Minecraft minecraft) {
         this.minecraft = minecraft;
     }

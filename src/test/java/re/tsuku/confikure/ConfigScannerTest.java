@@ -51,6 +51,7 @@ public final class ConfigScannerTest {
         assertEquals(EditorType.DROPDOWN, find(options, "mode").type());
         assertEquals(EditorType.MODE, find(options, "cycle-mode").type());
         assertEquals(EditorType.MULTILINE_TEXT, find(options, "notes").type());
+        assertEquals(EditorType.TEXT, find(options, "label").type());
         assertEquals(EditorType.INFO, find(options, "about").type());
         assertEquals(EditorType.DRAGGABLE_LIST, find(options, "order").type());
     }

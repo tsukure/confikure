@@ -20,22 +20,37 @@ public final class ConfigGroup {
         this.options = options;
     }
 
+    /**
+     * returns the stable group id.
+     */
     public String id() {
         return id;
     }
 
+    /**
+     * returns the display name for the group header.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * returns the group description.
+     */
     public String description() {
         return description;
     }
 
+    /**
+     * returns the configured sort position.
+     */
     public int order() {
         return order;
     }
 
+    /**
+     * returns the options in display order.
+     */
     public List<ConfigOption> options() {
         return options;
     }

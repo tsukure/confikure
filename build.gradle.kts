@@ -75,6 +75,11 @@ tasks {
         useJUnit()
     }
 
+    withType<Javadoc> {
+        (options as org.gradle.external.javadoc.StandardJavadocDocletOptions)
+            .addStringOption("Xdoclint:all,-missing", "-quiet")
+    }
+
     jar {
         archiveBaseName.set("confikure")
         archiveClassifier.set("without-deps")

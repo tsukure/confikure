@@ -16,6 +16,7 @@ import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
 import re.tsuku.confikure.annotations.SearchTag;
+import re.tsuku.confikure.annotations.Text;
 import re.tsuku.confikure.model.ConfigOption;
 
 public final class ConfigFixtures {
@@ -77,14 +78,18 @@ public final class ConfigFixtures {
         @Multiline
         public String notes = "line one";
 
-        @Option(name = "about", order = 4)
+        @Option(name = "label", order = 4)
+        @Text
+        public String label = "visuals";
+
+        @Option(name = "about", order = 5)
         @Info
         public String about = "client settings";
 
-        @Option(name = "order", order = 5)
+        @Option(name = "order", order = 6)
         public List<String> order = Arrays.asList("one", "two");
 
-        @Button(name = "reset cache", order = 6)
+        @Button(name = "reset cache", order = 7)
         public void resetCache() {
             reset = true;
         }

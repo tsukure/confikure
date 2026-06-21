@@ -22,6 +22,7 @@ import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
 import re.tsuku.confikure.annotations.SearchTag;
+import re.tsuku.confikure.annotations.Text;
 import re.tsuku.confikure.model.ButtonOptionAccess;
 import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigDefinition;
@@ -31,9 +32,19 @@ import re.tsuku.confikure.model.EditorType;
 import re.tsuku.confikure.model.FieldOptionAccess;
 import re.tsuku.confikure.model.NumberRange;
 
+/**
+ * scanner that converts annotated config objects into confikure model objects.
+ */
 public final class ConfigScanner {
     private static final String DEFAULT_GROUP_ID = "general";
 
+    /**
+     * scans one config root object.
+     *
+     * @param config
+     *            annotated root object
+     * @return scanned config definition
+     */
     public ConfigDefinition scan(Object config) {
         if (config == null) {
             throw new NullPointerException("config");
@@ -185,6 +196,9 @@ public final class ConfigScanner {
         if (field.getAnnotation(Multiline.class) != null) {
             return EditorType.MULTILINE_TEXT;
         }
+        if (field.getAnnotation(Text.class) != null) {
+            return EditorType.TEXT;
+        }
         if (field.getAnnotation(Mode.class) != null) {
             return EditorType.MODE;
         }
@@ -304,6 +318,13 @@ public final class ConfigScanner {
         }
     }
 
+    /**
+     * chooses the default editor type for an option value type.
+     *
+     * @param type
+     *            java field type
+     * @return inferred editor type
+     */
     public static EditorType inferEditorType(Class<?> type) {
         if (type == boolean.class || type == Boolean.class) {
             return EditorType.BOOLEAN;
@@ -324,6 +345,13 @@ public final class ConfigScanner {
         return EditorType.CUSTOM;
     }
 
+    /**
+     * converts display text into the stable lowercase id format used by generated ids.
+     *
+     * @param name
+     *            display text
+     * @return stable id using lowercase letters, digits, and dashes
+     */
     public static String stableId(String name) {
         StringBuilder builder = new StringBuilder();
         String text = name == null ? "" : name.trim().toLowerCase();

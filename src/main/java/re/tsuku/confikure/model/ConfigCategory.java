@@ -25,30 +25,51 @@ public final class ConfigCategory {
         this.groups = groups;
     }
 
+    /**
+     * returns the stable category id.
+     */
     public String id() {
         return id;
     }
 
+    /**
+     * returns the display name for the category tab.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * returns the category description.
+     */
     public String description() {
         return description;
     }
 
+    /**
+     * returns the configured sort position.
+     */
     public int order() {
         return order;
     }
 
+    /**
+     * returns the scanned category object.
+     */
     public Object instance() {
         return instance;
     }
 
+    /**
+     * returns the groups in display order.
+     */
     public List<ConfigGroup> groups() {
         return groups;
     }
 
+    /**
+     * returns every option in this category.
+     */
     public List<ConfigOption> options() {
         List<ConfigOption> options = new ArrayList<>();
         for (ConfigGroup group : groups) {

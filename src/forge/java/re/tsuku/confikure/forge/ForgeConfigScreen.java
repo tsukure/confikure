@@ -16,14 +16,23 @@ import re.tsuku.confikure.persistence.ConfigStore;
 public final class ForgeConfigScreen extends GuiScreen {
     private final ForgeConfigGui gui;
 
+    /**
+     * creates a screen without persistence.
+     */
     public ForgeConfigScreen(ConfigDefinition definition) {
         this(definition, null, null);
     }
 
+    /**
+     * creates a screen with persisted values.
+     */
     public ForgeConfigScreen(ConfigDefinition definition, Path path, ConfigStore store) {
         this(definition, path, store, null);
     }
 
+    /**
+     * creates a screen with persisted values and gui customization.
+     */
     public ForgeConfigScreen(ConfigDefinition definition, Path path, ConfigStore store,
             Consumer<ConfigGui> configurator) {
         this.gui = new ForgeConfigGui(Objects.requireNonNull(definition, "definition"), path, store, configurator);

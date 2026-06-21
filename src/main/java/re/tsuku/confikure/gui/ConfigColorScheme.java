@@ -15,14 +15,27 @@ public enum ConfigColorScheme {
         this.theme = theme;
     }
 
+    /**
+     * returns the display name used in config examples and dropdowns.
+     */
     public String displayName() {
         return displayName;
     }
 
+    /**
+     * returns the theme represented by this scheme.
+     */
     public ConfigTheme theme() {
         return theme;
     }
 
+    /**
+     * finds a scheme by display name.
+     *
+     * @param displayName
+     *            display name to resolve
+     * @return matching scheme, or {@link #MINECRAFT} when none matches
+     */
     public static ConfigColorScheme byDisplayName(String displayName) {
         for (ConfigColorScheme scheme : values()) {
             if (scheme.displayName.equals(displayName)) {

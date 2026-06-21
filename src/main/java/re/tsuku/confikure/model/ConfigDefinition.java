@@ -25,30 +25,51 @@ public final class ConfigDefinition {
         this.categories = categories;
     }
 
+    /**
+     * returns the root config object that was scanned.
+     */
     public Object instance() {
         return instance;
     }
 
+    /**
+     * returns the stable config id used by persistence.
+     */
     public String id() {
         return id;
     }
 
+    /**
+     * returns the display name for the config.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * returns the config description.
+     */
     public String description() {
         return description;
     }
 
+    /**
+     * returns the schema version written to persisted json.
+     */
     public int version() {
         return version;
     }
 
+    /**
+     * returns the scanned category tabs in display order.
+     */
     public List<ConfigCategory> categories() {
         return categories;
     }
 
+    /**
+     * returns every option from every category in display order.
+     */
     public List<ConfigOption> options() {
         List<ConfigOption> options = new ArrayList<>();
         for (ConfigCategory category : categories) {
@@ -57,6 +78,13 @@ public final class ConfigDefinition {
         return Collections.unmodifiableList(options);
     }
 
+    /**
+     * finds the first option with the given stable id.
+     *
+     * @param id
+     *            option id
+     * @return matching option, or {@code null} when none exists
+     */
     public ConfigOption option(String id) {
         for (ConfigOption option : options()) {
             if (option.id().equals(id)) {

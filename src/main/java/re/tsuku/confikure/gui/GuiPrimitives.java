@@ -2,7 +2,13 @@ package re.tsuku.confikure.gui;
 
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
+/**
+ * small drawing primitives shared by the default gui and custom editors.
+ */
 public final class GuiPrimitives {
+    /**
+     * directions supported by the chevron primitive.
+     */
     public enum Direction {
         LEFT, RIGHT, UP, DOWN
     }
@@ -10,10 +16,16 @@ public final class GuiPrimitives {
     private GuiPrimitives() {
     }
 
+    /**
+     * draws a framed rectangle.
+     */
     public static void frame(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds) {
         frame(renderer, theme, bounds.x, bounds.y, bounds.width, bounds.height);
     }
 
+    /**
+     * draws a framed rectangle.
+     */
     public static void frame(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height) {
         renderer.fill(x, y, x + width, y + height, theme.panel);
         renderer.fill(x, y, x + width - 1, y + 1, theme.border);
@@ -22,6 +34,9 @@ public final class GuiPrimitives {
         renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
     }
 
+    /**
+     * draws a framed rectangle with interaction-aware colors.
+     */
     public static void frame(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height,
             boolean hovered, boolean focused, boolean enabled) {
         renderer.fill(x, y, x + width, y + height, enabled && (hovered || focused) ? theme.panelRaised : theme.panel);
@@ -32,6 +47,9 @@ public final class GuiPrimitives {
         renderer.fill(x + width - 1, y + 1, x + width, y + height, theme.borderDark);
     }
 
+    /**
+     * draws a filled box with a border.
+     */
     public static void box(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, int fill, int border) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, fill);
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width - 1, bounds.y + 1, border);
@@ -42,6 +60,9 @@ public final class GuiPrimitives {
                 bounds.y + bounds.height, theme.borderDark);
     }
 
+    /**
+     * draws a border around a rectangle.
+     */
     public static void border(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, int color) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + 1, color);
         renderer.fill(bounds.x, bounds.y, bounds.x + 1, bounds.y + bounds.height, color);
@@ -51,6 +72,9 @@ public final class GuiPrimitives {
                 theme.borderDark);
     }
 
+    /**
+     * draws a text field frame, clipped text, selection, and cursor.
+     */
     public static void textField(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, String text, int cursor,
             int selectionStart, int selectionEnd, boolean hovered, boolean focused, boolean enabled,
             boolean topAligned) {
@@ -74,6 +98,9 @@ public final class GuiPrimitives {
         }
     }
 
+    /**
+     * draws the standard slider handle.
+     */
     public static void sliderHandle(GuiRenderer renderer, ConfigTheme theme, int centerX, int y, int height,
             boolean active, boolean enabled) {
         int fill = !enabled ? theme.panel : active ? theme.accentDark : theme.panelRaised;
@@ -85,6 +112,9 @@ public final class GuiPrimitives {
         renderer.fill(centerX - 2, y + height - 1, centerX + 4, y + height, theme.borderDark);
     }
 
+    /**
+     * draws the standard inline button frame.
+     */
     public static void inlineButton(GuiRenderer renderer, ConfigTheme theme, int x, int y, int width, int height,
             boolean hovered, boolean enabled) {
         int fill = !enabled ? theme.panel : hovered ? theme.panelRaised : theme.panel;
@@ -92,6 +122,9 @@ public final class GuiPrimitives {
         renderer.fill(x + 1, y + 1, x + width - 1, y + height - 1, fill);
     }
 
+    /**
+     * clips text to a maximum pixel width and appends ellipsis when needed.
+     */
     public static String clip(String text, GuiRenderer renderer, int width) {
         if (renderer.textWidth(text) <= width) {
             return text;
@@ -103,6 +136,9 @@ public final class GuiPrimitives {
         return value + "...";
     }
 
+    /**
+     * draws a pixel chevron.
+     */
     public static void chevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {
         if (direction == Direction.LEFT) {
             renderer.fill(x + 3, y, x + 4, y + 7, color);

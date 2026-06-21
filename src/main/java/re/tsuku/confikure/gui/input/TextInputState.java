@@ -12,16 +12,25 @@ public final class TextInputState {
     private int maxLength = 256;
     private CharacterFilter filter = CharacterFilter.ANY;
 
+    /**
+     * returns the current text.
+     */
     public String text() {
         return text;
     }
 
+    /**
+     * replaces the current text and moves the cursor to the end.
+     */
     public void text(String text) {
         this.text = text == null ? "" : text;
         this.cursor = this.text.length();
         this.selection = cursor;
     }
 
+    /**
+     * sets the maximum accepted text length.
+     */
     public void maxLength(int maxLength) {
         this.maxLength = Math.max(0, maxLength);
         if (text.length() > this.maxLength) {
@@ -30,31 +39,52 @@ public final class TextInputState {
         clamp();
     }
 
+    /**
+     * sets the character filter used for typed input.
+     */
     public void filter(CharacterFilter filter) {
         this.filter = filter == null ? CharacterFilter.ANY : filter;
     }
 
+    /**
+     * returns the cursor index.
+     */
     public int cursor() {
         return cursor;
     }
 
+    /**
+     * returns the lower selection bound.
+     */
     public int selectionStart() {
         return Math.min(cursor, selection);
     }
 
+    /**
+     * returns the upper selection bound.
+     */
     public int selectionEnd() {
         return Math.max(cursor, selection);
     }
 
+    /**
+     * moves the cursor to the character nearest a mouse x coordinate.
+     */
     public void cursorAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
         cursor = positionAt(renderer, visibleText, textX, mouseX);
         selection = cursor;
     }
 
+    /**
+     * extends selection to the character nearest a mouse x coordinate.
+     */
     public void selectAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
         cursor = positionAt(renderer, visibleText, textX, mouseX);
     }
 
+    /**
+     * applies one typed key and returns how the caller should react.
+     */
     public KeyResult keyTyped(char typedChar, int keyCode, boolean shift, boolean control, boolean multiline) {
         clamp();
         if (keyCode == 1) {
@@ -232,13 +262,22 @@ public final class TextInputState {
         selection = Math.max(0, Math.min(text.length(), selection));
     }
 
+    /**
+     * result of applying a key to a text input.
+     */
     public enum KeyResult {
         USED, CHANGED, COMMIT, CANCEL
     }
 
+    /**
+     * predicate for accepted typed characters.
+     */
     public interface CharacterFilter {
         CharacterFilter ANY = AcceptAllCharacterFilter.INSTANCE;
 
+        /**
+         * returns whether a typed character should be inserted.
+         */
         boolean accept(char character);
     }
 }

@@ -9,6 +9,13 @@ public final class Confikure {
     private Confikure() {
     }
 
+    /**
+     * scans an annotated config object into a renderable and persistable definition.
+     *
+     * @param config
+     *            root config object
+     * @return scanned config metadata and option accessors
+     */
     public static ConfigDefinition scan(Object config) {
         return new ConfigScanner().scan(config);
     }
