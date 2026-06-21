@@ -200,6 +200,14 @@ public final class ColorPickerPopup {
     }
 
     /**
+     * returns whether the point is inside the open picker.
+     */
+    public boolean contains(GuiBounds panel, int mouseX, int mouseY, ColorPickerHost host, int padding) {
+        return option != null && host.interactive(option)
+                && bounds(panel, option, host.optionBounds(panel, option), padding).contains(mouseX, mouseY);
+    }
+
+    /**
      * formats a color option as {@code #RRGGBB} or {@code #RRGGBBAA}.
      */
     public static String format(ConfigOption option) {

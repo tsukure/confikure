@@ -5,14 +5,20 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Map;
 import org.junit.Test;
 import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
 import re.tsuku.confikure.ConfigFixtures.ExampleConfig;
 import re.tsuku.confikure.ConfigFixtures.OffsetRangeConfig;
 import re.tsuku.confikure.Confikure;
+import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
+import re.tsuku.confikure.gui.editor.EditorContext;
+import re.tsuku.confikure.gui.editor.OptionEditor;
 import re.tsuku.confikure.gui.layout.ControlLayout;
+import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigOption;
+import re.tsuku.confikure.model.EditorType;
 import re.tsuku.confikure.model.OptionCondition;
 
 public final class ConfigGuiTest {
@@ -82,6 +88,32 @@ public final class ConfigGuiTest {
         clickControl(gui, "mode");
         clickDropdownChoice(gui, "mode", 1);
         assertEquals("fancy", config.visuals.mode);
+    }
+
+    @Test
+    public void dropdownPopupSuppressesUnderlyingHover() {
+        ExampleConfig config = new ExampleConfig();
+        Map<EditorType, OptionEditor> editors = DefaultOptionEditors.create();
+        RecordingEditor modeEditor = new RecordingEditor();
+        editors.put(EditorType.MODE, modeEditor);
+        ConfigGui gui = new ConfigGui(Confikure.scan(config), new ConfigTheme(), editors);
+        TestRenderer renderer = new TestRenderer();
+        gui.selectedCategory(1);
+        ConfigOption cycleMode = option(gui, "cycle-mode");
+        GuiBounds modeRow = gui.optionBounds(WIDTH, HEIGHT, option(gui, "mode"));
+        GuiBounds modeControl = ControlLayout.editor(modeRow);
+        int popupX = modeControl.x + 8;
+        int popupY = modeRow.y + modeRow.height - 7 + 18 + 9;
+
+        gui.render(renderer, WIDTH, HEIGHT, popupX, popupY);
+        assertTrue(gui.hovered(cycleMode));
+        assertTrue(modeEditor.cycleModeControlHovered);
+
+        clickControl(gui, "mode");
+        gui.render(renderer, WIDTH, HEIGHT, popupX, popupY);
+
+        assertFalse(gui.hovered(cycleMode));
+        assertFalse(modeEditor.cycleModeControlHovered);
     }
 
     @Test
@@ -331,5 +363,44 @@ public final class ConfigGuiTest {
 
     private static OptionCondition never() {
         return () -> false;
+    }
+
+    private static final class RecordingEditor implements OptionEditor {
+        private boolean cycleModeControlHovered;
+
+        public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
+                EditorContext context) {
+            if (option.id().equals("cycle-mode")) {
+                cycleModeControlHovered = ControlLayout.mode(bounds).contains(context.mouseX(), context.mouseY());
+            }
+        }
+
+        public void click(ConfigOption option, GuiBounds bounds, int mouseX, int mouseY) {
+        }
+    }
+
+    private static final class TestRenderer implements GuiRenderer {
+        public void fill(int left, int top, int right, int bottom, int color) {
+        }
+
+        public void text(String text, int x, int y, int color) {
+        }
+
+        public void centeredText(String text, int x, int y, int width, int color) {
+        }
+
+        public int textWidth(String text) {
+            return text.length() * 6;
+        }
+
+        public int fontHeight() {
+            return 9;
+        }
+
+        public void pushClip(int x, int y, int width, int height) {
+        }
+
+        public void popClip() {
+        }
     }
 }

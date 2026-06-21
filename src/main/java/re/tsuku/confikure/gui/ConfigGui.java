@@ -41,6 +41,7 @@ public final class ConfigGui implements EditorContext {
     private static final int SCROLLBAR_WIDTH = 8;
     private static final int SCROLLBAR_GUTTER_WIDTH = 10;
     private static final int SCROLLBAR_GUTTER_GAP = 6;
+    private static final int SUPPRESSED_MOUSE = Integer.MIN_VALUE;
 
     private final ConfigDefinition definition;
     private final Map<EditorType, OptionEditor> editors;
@@ -65,6 +66,8 @@ public final class ConfigGui implements EditorContext {
     private boolean drawBackdrop;
     private int mouseX;
     private int mouseY;
+    private int contextMouseX;
+    private int contextMouseY;
 
     public ConfigGui(ConfigDefinition definition) {
         this(definition, new ConfigTheme(), DefaultOptionEditors.create());
@@ -319,7 +322,10 @@ public final class ConfigGui implements EditorContext {
         clampScroll(panel);
         this.mouseX = mouseX;
         this.mouseY = mouseY;
-        hoveredOption = optionAtComponent(panel, mouseX, mouseY);
+        boolean popupHover = popupContains(panel, mouseX, mouseY);
+        hoveredOption = popupHover ? null : optionAtComponent(panel, mouseX, mouseY);
+        contextMouseX = popupHover ? SUPPRESSED_MOUSE : mouseX;
+        contextMouseY = popupHover ? SUPPRESSED_MOUSE : mouseY;
         if (drawBackdrop && theme.background != 0) {
             renderer.fill(0, 0, screenWidth, screenHeight, theme.background);
         }
@@ -329,8 +335,12 @@ public final class ConfigGui implements EditorContext {
         renderer.fill(panel.x + SIDEBAR_WIDTH, panel.y + 1, panel.x + panel.width - 1, panel.y + panel.height - 1,
                 theme.panel);
         drawSidebarHeader(renderer, panel);
-        drawCategories(renderer, panel, mouseX, mouseY);
-        drawCategory(renderer, panel, mouseX, mouseY);
+        drawCategories(renderer, panel, mouseX, mouseY, popupHover);
+        drawCategory(renderer, panel, mouseX, mouseY, popupHover);
+        contextMouseX = mouseX;
+        contextMouseY = mouseY;
+        drawDropdown(renderer, panel);
+        drawColorPicker(renderer, panel);
     }
 
     /**
@@ -585,14 +595,14 @@ public final class ConfigGui implements EditorContext {
      * returns the last mouse x value passed to render.
      */
     public int mouseX() {
-        return mouseX;
+        return contextMouseX;
     }
 
     /**
      * returns the last mouse y value passed to render.
      */
     public int mouseY() {
-        return mouseY;
+        return contextMouseY;
     }
 
     GuiBounds optionBounds(int screenWidth, int screenHeight, ConfigOption option) {
@@ -629,7 +639,7 @@ public final class ConfigGui implements EditorContext {
         return textState(option).selectionEnd();
     }
 
-    private void drawCategories(GuiRenderer renderer, GuiBounds panel, int mouseX, int mouseY) {
+    private void drawCategories(GuiRenderer renderer, GuiBounds panel, int mouseX, int mouseY, boolean popupHover) {
         if (definition.categories().isEmpty()) {
             return;
         }
@@ -637,7 +647,7 @@ public final class ConfigGui implements EditorContext {
             ConfigCategory category = definition.categories().get(i);
             GuiBounds tab = categoryBounds(panel, i);
             boolean selected = i == selectedCategory;
-            boolean hovered = tab.contains(mouseX, mouseY);
+            boolean hovered = !popupHover && tab.contains(mouseX, mouseY);
             int fill = selected ? theme.accentDark : hovered ? theme.panel : theme.panelRaised;
             GuiPrimitives.box(renderer, theme, tab, fill, selected ? theme.accent : theme.border);
             renderer.fill(tab.x, tab.y, tab.x + 2, tab.y + tab.height,
@@ -647,7 +657,7 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
-    private void drawCategory(GuiRenderer renderer, GuiBounds panel, int mouseX, int mouseY) {
+    private void drawCategory(GuiRenderer renderer, GuiBounds panel, int mouseX, int mouseY, boolean popupHover) {
         ConfigCategory category = category();
         if (category == null) {
             renderer.centeredText("no categories", panel.x, panel.y + panel.height / 2, panel.width, theme.mutedText);
@@ -655,7 +665,7 @@ public final class ConfigGui implements EditorContext {
         }
 
         int contentX = contentX(panel);
-        drawContentTopBar(renderer, panel, category);
+        drawContentTopBar(renderer, panel, category, popupHover);
         int contentY = contentY(panel);
         int contentWidth = contentWidth(panel);
         int contentHeight = contentViewportHeight(panel);
@@ -664,7 +674,7 @@ public final class ConfigGui implements EditorContext {
         OptionListLayout layout = optionLayout(panel, category);
         for (GroupBlock group : layout.groups()) {
             drawGroupShell(renderer, group.shell(), group.collapsed());
-            drawGroupHeader(renderer, group.group(), group.header(), group.collapsed());
+            drawGroupHeader(renderer, group.group(), group.header(), group.collapsed(), popupHover);
             for (OptionRow row : group.rows()) {
                 drawOption(renderer, row.option(), row.bounds());
             }
@@ -672,9 +682,7 @@ public final class ConfigGui implements EditorContext {
         }
 
         renderer.popClip();
-        drawScrollbar(renderer, panel);
-        drawDropdown(renderer, panel);
-        drawColorPicker(renderer, panel);
+        drawScrollbar(renderer, panel, popupHover);
     }
 
     private void drawOption(GuiRenderer renderer, ConfigOption option, GuiBounds bounds) {
@@ -701,8 +709,9 @@ public final class ConfigGui implements EditorContext {
         editor(option).render(option, bounds, renderer, theme, this);
     }
 
-    private void drawGroupHeader(GuiRenderer renderer, ConfigGroup group, GuiBounds bounds, boolean collapsed) {
-        boolean hovered = bounds.contains(mouseX, mouseY);
+    private void drawGroupHeader(GuiRenderer renderer, ConfigGroup group, GuiBounds bounds, boolean collapsed,
+            boolean popupHover) {
+        boolean hovered = !popupHover && bounds.contains(mouseX, mouseY);
         int headerBottom = collapsed ? bounds.y + bounds.height - 1 : bounds.y + bounds.height;
         renderer.fill(bounds.x + 1, bounds.y + 1, bounds.x + bounds.width - 1, headerBottom,
                 hovered ? theme.panel : theme.panelRaised);
@@ -767,7 +776,8 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
-    private void drawContentTopBar(GuiRenderer renderer, GuiBounds panel, ConfigCategory category) {
+    private void drawContentTopBar(GuiRenderer renderer, GuiBounds panel, ConfigCategory category,
+            boolean popupHover) {
         int x = panel.x + SIDEBAR_WIDTH + 1;
         int y = panel.y + 1;
         int width = panel.width - SIDEBAR_WIDTH - 2;
@@ -777,7 +787,7 @@ public final class ConfigGui implements EditorContext {
         int textY = y + (TOP_BAR_HEIGHT - renderer.fontHeight()) / 2;
         renderer.text(category.name(), textX, textY, theme.text);
         GuiBounds close = closeBounds(panel);
-        boolean hovered = close.contains(mouseX, mouseY);
+        boolean hovered = !popupHover && close.contains(mouseX, mouseY);
         GuiPrimitives.box(renderer, theme, close, hovered ? theme.danger : theme.panel,
                 hovered ? theme.text : theme.border);
         renderer.centeredText("x", close.x, close.y + 5, close.width, hovered ? theme.text : theme.mutedText);
@@ -807,6 +817,14 @@ public final class ConfigGui implements EditorContext {
 
     private void drawColorPicker(GuiRenderer renderer, GuiBounds panel) {
         colorPicker.render(renderer, theme, panel, colorPickerHost);
+    }
+
+    private boolean popupContains(GuiBounds panel, int mouseX, int mouseY) {
+        if (openDropdown != null && interactive(openDropdown) && dropdownBounds(panel, openDropdown).contains(mouseX,
+                mouseY)) {
+            return true;
+        }
+        return colorPicker.contains(panel, mouseX, mouseY, colorPickerHost, theme.padding);
     }
 
     private OptionEditor editor(ConfigOption option) {
@@ -1003,7 +1021,7 @@ public final class ConfigGui implements EditorContext {
         return new GuiBounds(track.x, thumbY, track.width, thumbHeight);
     }
 
-    private void drawScrollbar(GuiRenderer renderer, GuiBounds panel) {
+    private void drawScrollbar(GuiRenderer renderer, GuiBounds panel, boolean popupHover) {
         GuiBounds gutter = scrollbarGutterBounds(panel);
         ConfigCategory category = category();
         if (category == null || maxScroll(panel, category) <= 0) {
@@ -1011,7 +1029,7 @@ public final class ConfigGui implements EditorContext {
         }
         GuiBounds track = scrollbarTrackBounds(panel);
         GuiBounds thumb = scrollbarThumbBounds(panel);
-        boolean thumbHovered = thumb.contains(mouseX, mouseY) || draggingScrollbar;
+        boolean thumbHovered = draggingScrollbar || (!popupHover && thumb.contains(mouseX, mouseY));
         renderer.fill(gutter.x, gutter.y, gutter.x + gutter.width, gutter.y + gutter.height, theme.panel);
         renderer.fill(track.x + 2, track.y, track.x + track.width - 2, track.y + track.height, theme.slot);
         renderer.fill(track.x + 1, track.y, track.x + 2, track.y + track.height, theme.borderDark);
