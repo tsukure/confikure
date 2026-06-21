@@ -1,0 +1,10 @@
+{
+  "package": "re.tsuku.confikure.forge.mixin",
+  "refmap": "mixins.confikure.refmap.json",
+  "minVersion": "0.7",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "client": [
+    "minecraft.client.MinecraftMixin"
+  ]
+}

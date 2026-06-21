@@ -3,11 +3,9 @@ package re.tsuku.confikure.forge;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import re.tsuku.confikure.Confikure;
+import re.tsuku.confikure.forge.event.ConfikureScreenOpenEvent;
+import re.tsuku.confikure.forge.task.DelayedTaskHandler;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.persistence.ConfigStore;
@@ -16,10 +14,17 @@ import re.tsuku.confikure.persistence.ConfigStore;
  * forge 1.8.9 entry points for opening confikure screens.
  */
 public final class ConfikureForge {
-    private static final TickOpener TICK_OPENER = new TickOpener();
-    private static boolean registered;
+    private static boolean initialized;
 
     private ConfikureForge() {
+    }
+
+    public static void init() {
+        if (initialized) {
+            return;
+        }
+        Confikure.eventBus().subscribe(DelayedTaskHandler.get());
+        initialized = true;
     }
 
     public static ConfikureForgeScreen screen(Object config) {
@@ -40,44 +45,28 @@ public final class ConfikureForge {
     }
 
     public static void open(Object config) {
-        open(screen(config));
+        init();
+        DelayedTaskHandler.schedule(1, () -> openNow(screen(config)));
     }
 
     public static void open(Object config, Path path) {
-        open(screen(config, path));
+        init();
+        DelayedTaskHandler.schedule(1, () -> openNow(screen(config, path)));
     }
 
     public static void open(Object config, Path path, Consumer<ConfigGui> configurator) {
-        open(screen(config, path, configurator));
+        init();
+        DelayedTaskHandler.schedule(1, () -> openNow(screen(config, path, configurator)));
     }
 
     public static void open(ConfikureForgeScreen screen) {
-        ensureRegistered();
-        TICK_OPENER.screen = screen;
+        init();
+        DelayedTaskHandler.schedule(1, () -> openNow(screen));
     }
 
     public static void openNow(ConfikureForgeScreen screen) {
+        init();
+        Confikure.eventBus().post(new ConfikureScreenOpenEvent(screen));
         Minecraft.getMinecraft().displayGuiScreen(screen);
-    }
-
-    private static void ensureRegistered() {
-        if (registered) {
-            return;
-        }
-        MinecraftForge.EVENT_BUS.register(TICK_OPENER);
-        registered = true;
-    }
-
-    private static final class TickOpener {
-        private GuiScreen screen;
-
-        @SubscribeEvent
-        public void onClientTick(TickEvent.ClientTickEvent event) {
-            if (event.phase == TickEvent.Phase.END || screen == null) {
-                return;
-            }
-            Minecraft.getMinecraft().displayGuiScreen(screen);
-            screen = null;
-        }
     }
 }
