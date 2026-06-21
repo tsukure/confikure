@@ -40,6 +40,20 @@ public final class ConfigStoreTest {
     }
 
     @Test
+    public void saveCreatesParentsAndOmitsActionOnlyRows() throws Exception {
+        ExampleConfig config = new ExampleConfig();
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.getRoot().toPath().resolve("nested/example.json");
+
+        store.save(Confikure.scan(config), path);
+
+        String json = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        assertTrue(Files.isRegularFile(path));
+        assertFalse(json.contains("reset-cache"));
+        assertFalse(json.contains("about"));
+    }
+
+    @Test
     public void loadSkipsMismatchedConfigId() throws Exception {
         ConfigStore store = new ConfigStore();
         Path path = temporaryFolder.newFile("wrong.json").toPath();
@@ -74,6 +88,15 @@ public final class ConfigStoreTest {
         ConfigStore store = new ConfigStore();
         Path path = temporaryFolder.newFile("corrupt.json").toPath();
         Files.write(path, Arrays.asList("{nope"), StandardCharsets.UTF_8);
+
+        assertFalse(store.load(Confikure.scan(new ExampleConfig()), path));
+    }
+
+    @Test
+    public void loadReturnsFalseWhenCategoriesAreMissing() throws Exception {
+        ConfigStore store = new ConfigStore();
+        Path path = temporaryFolder.newFile("no-categories.json").toPath();
+        Files.write(path, Arrays.asList("{", "  \"config\": \"example\"", "}"), StandardCharsets.UTF_8);
 
         assertFalse(store.load(Confikure.scan(new ExampleConfig()), path));
     }

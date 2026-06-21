@@ -91,6 +91,33 @@ public final class TextInputStateTest {
         assertEquals(10, state.selectionEnd());
     }
 
+    @Test
+    public void insertReplacesSelectionWithinMaxLength() {
+        TextInputState state = new TextInputState();
+        state.text("abcdef");
+        state.maxLength(6);
+        state.cursorAt(new TestRenderer(), state.text(), 0, 0);
+        state.keyTyped('\0', 205, true, false, false);
+        state.keyTyped('\0', 205, true, false, false);
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('x', 0, false, false, false));
+
+        assertEquals("xcdef", state.text());
+        assertEquals(1, state.cursor());
+    }
+
+    @Test
+    public void shiftEnterOnlyInsertsNewlineForMultilineFields() {
+        TextInputState state = new TextInputState();
+        state.text("hello");
+
+        assertEquals(KeyResult.COMMIT, state.keyTyped('\0', 28, true, false, false));
+        assertEquals("hello", state.text());
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 28, true, false, true));
+        assertEquals("hello\n", state.text());
+    }
+
     private static final class TestRenderer implements GuiRenderer {
         public void fill(int left, int top, int right, int bottom, int color) {
         }

@@ -2,6 +2,7 @@ package re.tsuku.confikure;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static re.tsuku.confikure.ConfigFixtures.find;
 
@@ -56,6 +57,35 @@ public final class ConfigOptionTest {
         assertEquals(3L, config.general.longValue);
         assertEquals(1.25F, config.general.floatValue, 0.0F);
         assertEquals(2.0D, config.general.doubleValue, 0.0D);
+    }
+
+    @Test
+    public void rejectsInvalidDropdownChoicesAndNullPrimitiveValues() {
+        ConfigDefinition definition = Confikure.scan(new ExampleConfig());
+        ConfigOption mode = definition.option("mode");
+        ConfigOption speed = definition.option("speed");
+
+        IllegalArgumentException invalidChoice = assertThrows(IllegalArgumentException.class,
+                () -> mode.set("missing"));
+        assertTrue(invalidChoice.getMessage().contains("invalid value for mode"));
+
+        IllegalArgumentException nullPrimitive = assertThrows(IllegalArgumentException.class,
+                () -> speed.set(null));
+        assertTrue(nullPrimitive.getMessage().contains("null is not valid for speed"));
+    }
+
+    @Test
+    public void listenersOnlyFireWhenValueChanges() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigOption speed = Confikure.scan(config).option("speed");
+        final int[] changes = {0};
+
+        speed.addListener((option, oldValue, newValue) -> changes[0]++);
+
+        speed.set(1.0D);
+        speed.set(1.5D);
+
+        assertEquals(1, changes[0]);
     }
 
     @Test

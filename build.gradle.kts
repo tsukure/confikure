@@ -101,6 +101,8 @@ tasks {
     }
 
     val releaseSourcesJar = register("releaseSourcesJar") {
+        group = LifecycleBasePlugin.BUILD_GROUP
+        description = "Copies the source jar without dev-only sources into the release artifact name."
         val input = layout.buildDirectory.file("libs/confikure-${project.version}-sources-dev.jar")
         val output = layout.buildDirectory.file("libs/confikure-${project.version}-sources.jar")
         dependsOn(named("sourcesJar"))

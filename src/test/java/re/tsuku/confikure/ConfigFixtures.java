@@ -15,6 +15,7 @@ import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
+import re.tsuku.confikure.annotations.SearchTag;
 import re.tsuku.confikure.model.ConfigOption;
 
 public final class ConfigFixtures {
@@ -93,6 +94,37 @@ public final class ConfigFixtures {
     public static final class KeybindPolicyConfig {
         @Category(name = "general")
         public final Keybinds keybinds = new Keybinds();
+    }
+
+    @Config(name = "choice config")
+    public static final class ChoiceConfig {
+        @Category(name = "general")
+        public final Choices general = new Choices();
+    }
+
+    public enum ChoiceMode {
+        FIRST, SECOND
+    }
+
+    public static final class Choices {
+        @Option(name = "enum mode")
+        public ChoiceMode enumMode = ChoiceMode.FIRST;
+
+        @Option(name = "tagged value")
+        @SearchTag({"alias", "lookup"})
+        public String taggedValue = "value";
+    }
+
+    @Config(name = "invalid button")
+    public static final class InvalidButtonConfig {
+        @Category(name = "general")
+        public final InvalidButtons general = new InvalidButtons();
+    }
+
+    public static final class InvalidButtons {
+        @Button(name = "bad")
+        public void bad(String value) {
+        }
     }
 
     public static final class Keybinds {

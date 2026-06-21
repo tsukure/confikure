@@ -47,6 +47,17 @@ public final class NumberDisplayTest {
         assertEquals("0.7", NumberDisplay.format(option));
     }
 
+    @Test
+    public void formatsIntegersAndNegativeSteppedValuesCleanly() {
+        ConfigOption option = option(new NumberRange(-1.0D, 1.0D, 0.25D), 0.0D);
+
+        option.set(-0.5D);
+        assertEquals("-0.5", NumberDisplay.format(option));
+
+        option.set(1.0D);
+        assertEquals("1", NumberDisplay.format(option));
+    }
+
     private static ConfigOption option(NumberRange range, double initialValue) {
         MutableDoubleAccess access = new MutableDoubleAccess(initialValue);
         return new ConfigOption("number", "number", "", "", 0, EditorType.NUMBER, access, initialValue, range,

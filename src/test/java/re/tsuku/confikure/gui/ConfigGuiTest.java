@@ -172,6 +172,23 @@ public final class ConfigGuiTest {
     }
 
     @Test
+    public void invalidColorTextKeepsPreviousValue() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(1);
+        gui.click(800, 600, 660, 441);
+        gui.click(800, 600, 600, 474);
+        gui.keyTyped('\0', 30, false, true);
+        for (char character : "#NOPE".toCharArray()) {
+            gui.keyTyped(character, 0);
+        }
+        gui.keyTyped('\0', 28);
+
+        assertEquals(0xFF78A96B, config.visuals.primaryColor);
+    }
+
+    @Test
     public void staleDisabledPopupsAndDragsDoNotMutateOptions() {
         ExampleConfig config = new ExampleConfig();
         ConfigDefinition definition = Confikure.scan(config);
@@ -233,10 +250,6 @@ public final class ConfigGuiTest {
     }
 
     private static OptionCondition never() {
-        return new OptionCondition() {
-            public boolean test() {
-                return false;
-            }
-        };
+        return () -> false;
     }
 }

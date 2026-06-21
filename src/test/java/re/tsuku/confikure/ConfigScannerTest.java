@@ -2,18 +2,20 @@ package re.tsuku.confikure;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static re.tsuku.confikure.ConfigFixtures.find;
 
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
+import re.tsuku.confikure.ConfigFixtures.ChoiceConfig;
 import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateCategoryConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateGroupConfig;
 import re.tsuku.confikure.ConfigFixtures.DuplicateOptionConfig;
 import re.tsuku.confikure.ConfigFixtures.ExampleConfig;
+import re.tsuku.confikure.ConfigFixtures.InvalidButtonConfig;
 import re.tsuku.confikure.ConfigFixtures.KeybindPolicyConfig;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigGroup;
@@ -73,6 +75,23 @@ public final class ConfigScannerTest {
     }
 
     @Test
+    public void infersEnumChoicesAndSearchTags() {
+        ConfigDefinition definition = Confikure.scan(new ChoiceConfig());
+        List<ConfigOption> options = definition.categories().get(0).options();
+
+        assertEquals(EditorType.DROPDOWN, find(options, "enum-mode").type());
+        assertEquals(Arrays.asList("FIRST", "SECOND"), find(options, "enum-mode").choices());
+        assertEquals(Arrays.asList("alias", "lookup"), find(options, "tagged-value").searchTags());
+    }
+
+    @Test
+    public void stableIdsCollapsePunctuationAndFallbackForBlankNames() {
+        assertEquals("fancy-option-2", ConfigScanner.stableId("  Fancy Option #2!! "));
+        assertEquals("option", ConfigScanner.stableId("!!!"));
+        assertEquals("option", ConfigScanner.stableId(null));
+    }
+
+    @Test
     public void validatesDropdownsAndInvokesButtons() {
         ExampleConfig config = new ExampleConfig();
         ConfigDefinition definition = Confikure.scan(config);
@@ -94,16 +113,8 @@ public final class ConfigScannerTest {
         ConfigOption mode = find(definition.categories().get(1).options(), "mode");
         ConfigOption notes = find(definition.categories().get(1).options(), "notes");
 
-        mode.enabledWhen(new re.tsuku.confikure.model.OptionCondition() {
-            public boolean test() {
-                return !config.visuals.notes.equals("locked");
-            }
-        });
-        notes.visibleWhen(new re.tsuku.confikure.model.OptionCondition() {
-            public boolean test() {
-                return config.visuals.primaryColor != 0;
-            }
-        });
+        mode.enabledWhen(() -> !config.visuals.notes.equals("locked"));
+        notes.visibleWhen(() -> config.visuals.primaryColor != 0);
 
         assertTrue(mode.enabled());
         assertTrue(notes.visible());
@@ -117,31 +128,29 @@ public final class ConfigScannerTest {
 
     @Test
     public void duplicateCategoryIdsFailScan() {
-        try {
-            Confikure.scan(new DuplicateCategoryConfig());
-            fail("expected duplicate category id to fail");
-        } catch (IllegalArgumentException expected) {
-            assertTrue(expected.getMessage().contains("duplicate category id"));
-        }
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Confikure.scan(new DuplicateCategoryConfig()));
+        assertTrue(exception.getMessage().contains("duplicate category id"));
     }
 
     @Test
     public void duplicateGroupIdsFailScan() {
-        try {
-            Confikure.scan(new DuplicateGroupConfig());
-            fail("expected duplicate group id to fail");
-        } catch (IllegalArgumentException expected) {
-            assertTrue(expected.getMessage().contains("duplicate group id"));
-        }
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Confikure.scan(new DuplicateGroupConfig()));
+        assertTrue(exception.getMessage().contains("duplicate group id"));
     }
 
     @Test
     public void duplicateOptionIdsFailScan() {
-        try {
-            Confikure.scan(new DuplicateOptionConfig());
-            fail("expected duplicate option id to fail");
-        } catch (IllegalArgumentException expected) {
-            assertTrue(expected.getMessage().contains("duplicate option id"));
-        }
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Confikure.scan(new DuplicateOptionConfig()));
+        assertTrue(exception.getMessage().contains("duplicate option id"));
+    }
+
+    @Test
+    public void buttonMethodsCannotHaveParameters() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Confikure.scan(new InvalidButtonConfig()));
+        assertTrue(exception.getMessage().contains("@Button methods cannot have parameters"));
     }
 }
