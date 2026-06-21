@@ -116,6 +116,9 @@ ForgeConfig.open(config, configFile);
 to embed confikure inside your own `GuiScreen`, create a controller and forward lifecycle calls:
 
 ```java
+import re.tsuku.confikure.forge.ForgeConfig;
+import re.tsuku.confikure.forge.ForgeConfigGui;
+
 ForgeConfigGui gui = ForgeConfig.gui(config, configFile, confikure -> {
     confikure.sidebarHeader((renderer, bounds, theme) -> {
         renderer.text("examplemod", bounds.x, bounds.y, theme.text);
@@ -170,6 +173,8 @@ run the example mod:
 ```bash
 ./gradlew runClient
 ```
+
+or use the generated `Minecraft Client` run configuration in intellij.
 
 open the example gui with:
 
