@@ -4,11 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import re.tsuku.confikure.gui.color.ColorPickerPopup;
 import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
 import re.tsuku.confikure.gui.editor.EditorContext;
 import re.tsuku.confikure.gui.editor.OptionEditor;
+import re.tsuku.confikure.gui.format.NumberDisplay;
 import re.tsuku.confikure.gui.input.TextInputState;
 import re.tsuku.confikure.gui.input.TextInputState.KeyResult;
+import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigDefinition;
@@ -24,11 +27,6 @@ public final class ConfigGui implements EditorContext {
     private static final int SIDEBAR_WIDTH = 112;
     private static final int SIDEBAR_HEADER_HEIGHT = 44;
     private static final int TOP_BAR_HEIGHT = 32;
-    private static final int EDITOR_WIDTH = 142;
-    private static final int CONTROL_RIGHT_PADDING = 6;
-    private static final int SLIDER_TRACK_WIDTH = 94;
-    private static final int SLIDER_FIELD_WIDTH = 42;
-    private static final int SLIDER_HANDLE_PAD = 4;
     private static final int DROP_ITEM_HEIGHT = 18;
     private static final int OPTION_GAP = 0;
     private static final int GROUP_HEADER_HEIGHT = 24;
@@ -39,37 +37,23 @@ public final class ConfigGui implements EditorContext {
     private static final int SCROLLBAR_WIDTH = 8;
     private static final int SCROLLBAR_GUTTER_WIDTH = 10;
     private static final int SCROLLBAR_GUTTER_GAP = 6;
-    private static final int COLOR_PICKER_PADDING = 8;
-    private static final int COLOR_PICKER_SQUARE_WIDTH = 112;
-    private static final int COLOR_PICKER_TRACK_WIDTH = 12;
-    private static final int COLOR_PICKER_TRACK_GAP = 8;
-    private static final int COLOR_PICKER_ALPHA_GAP = 6;
-    private static final int COLOR_PICKER_HEIGHT = 72;
-    private static final int COLOR_PICKER_ROW_GAP = 8;
-    private static final int COLOR_PICKER_FIELD_HEIGHT = 18;
-    private static final int COLOR_PICKER_PREVIEW_WIDTH = 28;
 
     private final ConfigDefinition definition;
     private final Map<EditorType, OptionEditor> editors;
     private final Map<ConfigOption, TextInputState> textStates = new HashMap<ConfigOption, TextInputState>();
-    private final Map<ConfigOption, ColorPickerState> colorStates = new HashMap<ConfigOption, ColorPickerState>();
     private final Map<String, Boolean> collapsedGroups = new HashMap<String, Boolean>();
+    private final ColorPickerPopup colorPicker = new ColorPickerPopup();
+    private final ConfigGuiColorPickerHost colorPickerHost = new ConfigGuiColorPickerHost(this);
     private ConfigTheme theme;
     private Supplier<ConfigTheme> themeSupplier;
     private GuiRenderer renderer;
-    private KeyNameProvider keyNameProvider = new KeyNameProvider() {
-        public String name(int keyCode) {
-            return String.valueOf(keyCode);
-        }
-    };
+    private KeyNameProvider keyNameProvider = DefaultKeyNameProvider.INSTANCE;
     private int selectedCategory;
     private int scroll;
     private ConfigOption focusedOption;
     private ConfigOption hoveredOption;
     private ConfigOption activeOption;
     private ConfigOption openDropdown;
-    private ConfigOption openColorPicker;
-    private ColorDrag colorDrag = ColorDrag.NONE;
     private boolean draggingScrollbar;
     private int scrollbarDragOffset;
     private SidebarHeader sidebarHeader;
@@ -181,7 +165,8 @@ public final class ConfigGui implements EditorContext {
         if (openDropdown != null && handleDropdownClick(panel, mouseX, mouseY)) {
             return;
         }
-        if (openColorPicker != null && handleColorPickerMouse(panel, mouseX, mouseY, true)) {
+        if (colorPicker.isOpen()
+                && colorPicker.handleMouse(panel, mouseX, mouseY, true, colorPickerHost, theme.padding)) {
             return;
         }
         closePopups();
@@ -224,17 +209,18 @@ public final class ConfigGui implements EditorContext {
             return;
         }
         if (option.type() == EditorType.NUMBER) {
-            if (sliderFieldBounds(optionBounds(panel, option)).contains(mouseX, mouseY)) {
+            if (ControlLayout.sliderField(optionBounds(panel, option)).contains(mouseX, mouseY)) {
                 focusedOption = option;
                 focusNumber(option);
                 focusNumberCursor(option, optionBounds(panel, option), mouseX);
                 activeOption = option;
                 return;
             }
-            if (!sliderHitBounds(optionBounds(panel, option)).contains(mouseX, mouseY)) {
+            if (!ControlLayout.sliderHit(optionBounds(panel, option)).contains(mouseX, mouseY)) {
                 focusedOption = null;
                 return;
             }
+            focusedOption = null;
             activeOption = option;
             setSliderValue(option, optionBounds(panel, option), mouseX);
             return;
@@ -254,11 +240,12 @@ public final class ConfigGui implements EditorContext {
         }
         if (option.type() == EditorType.COLOR) {
             focusedOption = null;
-            openColorPicker = option;
+            colorPicker.open(option);
             return;
         }
         if (option.type() == EditorType.KEYBIND) {
-            if (option.keybindClearable() && keybindClearBounds(optionBounds(panel, option)).contains(mouseX, mouseY)) {
+            if (option.keybindClearable()
+                    && ControlLayout.keybindClear(optionBounds(panel, option)).contains(mouseX, mouseY)) {
                 clearKeybind(option);
                 return;
             }
@@ -291,14 +278,14 @@ public final class ConfigGui implements EditorContext {
             setSliderValue(activeOption, optionBounds(panel, activeOption), mouseX);
             return;
         }
-        if (activeOption == openColorPicker) {
-            handleColorPickerMouse(panel, mouseX, mouseY, false);
+        if (activeOption == colorPicker.option()) {
+            colorPicker.handleMouse(panel, mouseX, mouseY, false, colorPickerHost, theme.padding);
         }
     }
 
     public void release() {
         activeOption = null;
-        colorDrag = ColorDrag.NONE;
+        colorPicker.stopDrag();
         draggingScrollbar = false;
     }
 
@@ -307,7 +294,7 @@ public final class ConfigGui implements EditorContext {
     }
 
     public boolean keyTyped(char typedChar, int keyCode, boolean shift, boolean control) {
-        if ((keyCode == 1 || keyCode == 28) && (openDropdown != null || openColorPicker != null)
+        if ((keyCode == 1 || keyCode == 28) && (openDropdown != null || colorPicker.isOpen())
                 && focusedOption == null) {
             cancelFocus();
             return true;
@@ -363,7 +350,7 @@ public final class ConfigGui implements EditorContext {
     }
 
     public boolean colorPickerOpen(ConfigOption option) {
-        return option == openColorPicker;
+        return colorPicker.isOpen(option);
     }
 
     public String displayValue(ConfigOption option) {
@@ -379,7 +366,7 @@ public final class ConfigGui implements EditorContext {
             return NumberDisplay.format(option);
         }
         if (option.type() == EditorType.COLOR) {
-            return colorHex(option);
+            return ColorPickerPopup.format(option);
         }
         return String.valueOf(option.get());
     }
@@ -482,9 +469,7 @@ public final class ConfigGui implements EditorContext {
                 ? theme.disabledText
                 : option.type() == EditorType.INFO ? theme.mutedText : theme.text;
         boolean hasDescription = !option.description().isEmpty();
-        int nameY = hasDescription
-                ? twoLineTextY(renderer, bounds)
-                : bounds.y + Math.max(4, (bounds.height - renderer.fontHeight()) / 2);
+        int nameY = optionTextY(renderer, bounds, option, hasDescription);
         renderer.text(option.name(), bounds.x + 8, nameY, nameColor);
         if (hasDescription) {
             renderer.text(option.description(), bounds.x + 8, nameY + renderer.fontHeight() + TEXT_LINE_GAP,
@@ -531,7 +516,13 @@ public final class ConfigGui implements EditorContext {
                 theme.borderDark);
     }
 
-    private int twoLineTextY(GuiRenderer renderer, GuiBounds bounds) {
+    private int optionTextY(GuiRenderer renderer, GuiBounds bounds, ConfigOption option, boolean hasDescription) {
+        if (rowHeight(option) > Math.max(28, theme.rowHeight)) {
+            return bounds.y + 6;
+        }
+        if (!hasDescription) {
+            return bounds.y + Math.max(4, (bounds.height - renderer.fontHeight()) / 2);
+        }
         int blockHeight = renderer.fontHeight() * 2 + TEXT_LINE_GAP;
         return bounds.y + Math.max(2, (bounds.height - blockHeight) / 2);
     }
@@ -591,62 +582,7 @@ public final class ConfigGui implements EditorContext {
     }
 
     private void drawColorPicker(GuiRenderer renderer, GuiBounds panel) {
-        if (openColorPicker == null) {
-            return;
-        }
-        if (!interactive(openColorPicker)) {
-            openColorPicker = null;
-            return;
-        }
-        GuiBounds picker = colorPickerBounds(panel, openColorPicker);
-        frame(renderer, picker.x, picker.y, picker.width, picker.height);
-        int color = color(openColorPicker);
-        ColorPickerState state = colorState(openColorPicker);
-        syncColorState(openColorPicker, state);
-        int squareX = picker.x + COLOR_PICKER_PADDING;
-        int squareY = picker.y + COLOR_PICKER_PADDING;
-        for (int y = 0; y < COLOR_PICKER_HEIGHT; y += 2) {
-            for (int x = 0; x < COLOR_PICKER_SQUARE_WIDTH; x += 2) {
-                float saturation = x / (float) COLOR_PICKER_SQUARE_WIDTH;
-                float value = 1.0F - y / (float) COLOR_PICKER_HEIGHT;
-                renderer.fill(squareX + x, squareY + y, squareX + x + 2, squareY + y + 2,
-                        0xFF000000 | hsvToRgb(state.hue, saturation, value));
-            }
-        }
-        drawBorder(renderer, squareX, squareY, COLOR_PICKER_SQUARE_WIDTH, COLOR_PICKER_HEIGHT, theme.border);
-        int hueX = squareX + COLOR_PICKER_SQUARE_WIDTH + COLOR_PICKER_TRACK_GAP;
-        for (int y = 0; y < COLOR_PICKER_HEIGHT; y += 2) {
-            renderer.fill(hueX, squareY + y, hueX + COLOR_PICKER_TRACK_WIDTH, squareY + y + 2,
-                    0xFF000000 | hsvToRgb(y / (float) COLOR_PICKER_HEIGHT, 1.0F, 1.0F));
-        }
-        drawBorder(renderer, hueX, squareY, COLOR_PICKER_TRACK_WIDTH, COLOR_PICKER_HEIGHT, theme.border);
-        if (openColorPicker.colorAlpha()) {
-            int alphaX = hueX + COLOR_PICKER_TRACK_WIDTH + COLOR_PICKER_ALPHA_GAP;
-            drawAlphaTrack(renderer, alphaX, squareY, color);
-            drawBorder(renderer, alphaX, squareY, COLOR_PICKER_TRACK_WIDTH, COLOR_PICKER_HEIGHT, theme.border);
-        }
-        int markerX = squareX + Math.round(state.saturation * COLOR_PICKER_SQUARE_WIDTH);
-        int markerY = squareY + Math.round((1.0F - state.value) * COLOR_PICKER_HEIGHT);
-        drawPickerHandle(renderer, markerX, markerY);
-        int hueY = squareY + Math.round(state.hue * COLOR_PICKER_HEIGHT);
-        drawVerticalTrackHandle(renderer, hueX, hueY, true);
-        if (openColorPicker.colorAlpha()) {
-            int alphaX = hueX + COLOR_PICKER_TRACK_WIDTH + COLOR_PICKER_ALPHA_GAP;
-            int alphaY = squareY + Math.round(((color >>> 24) & 0xFF) / 255.0F * COLOR_PICKER_HEIGHT);
-            drawVerticalTrackHandle(renderer, alphaX, alphaY, true);
-        }
-        GuiBounds preview = colorPreviewBounds(picker);
-        frame(renderer, preview.x, preview.y, preview.width, preview.height);
-        renderer.fill(preview.x + 3, preview.y + 3, preview.x + preview.width - 3, preview.y + preview.height - 3,
-                theme.slot);
-        renderer.fill(preview.x + 4, preview.y + 4, preview.x + preview.width - 4, preview.y + preview.height - 4,
-                color);
-        GuiBounds hex = colorHexBounds(picker);
-        boolean hexFocused = openColorPicker == focusedOption;
-        boolean hexHovered = hex.contains(mouseX, mouseY);
-        String value = displayValue(openColorPicker);
-        drawTextField(renderer, hex, value, textCursor(openColorPicker), textSelectionStart(openColorPicker),
-                textSelectionEnd(openColorPicker), hexHovered, hexFocused);
+        colorPicker.render(renderer, theme, panel, colorPickerHost);
     }
 
     private OptionEditor editor(ConfigOption option) {
@@ -753,7 +689,7 @@ public final class ConfigGui implements EditorContext {
         return controlBounds(row, option).contains(mouseX, mouseY) ? option : null;
     }
 
-    private GuiBounds optionBounds(GuiBounds panel, ConfigOption target) {
+    GuiBounds optionBounds(GuiBounds panel, ConfigOption target) {
         ConfigCategory category = category();
         int contentX = contentX(panel);
         int y = contentY(panel) - scroll;
@@ -808,7 +744,7 @@ public final class ConfigGui implements EditorContext {
         return null;
     }
 
-    private boolean interactive(ConfigOption target) {
+    boolean interactive(ConfigOption target) {
         return target != null && target.enabled() && target.visible() && visibleInCurrentCategory(target);
     }
 
@@ -843,102 +779,31 @@ public final class ConfigGui implements EditorContext {
 
     private GuiBounds dropdownBounds(GuiBounds panel, ConfigOption option) {
         GuiBounds row = optionBounds(panel, option);
-        int x = row.x + row.width - EDITOR_WIDTH - CONTROL_RIGHT_PADDING;
+        GuiBounds control = ControlLayout.editor(row);
         int y = row.y + row.height - 7;
-        return new GuiBounds(x, y, EDITOR_WIDTH, option.choices().size() * DROP_ITEM_HEIGHT + 2);
-    }
-
-    private GuiBounds colorPickerBounds(GuiBounds panel, ConfigOption option) {
-        GuiBounds row = optionBounds(panel, option);
-        int width = colorPickerWidth(option);
-        int height = colorPickerHeight();
-        int x = row.x + row.width - width - CONTROL_RIGHT_PADDING;
-        int y = Math.min(row.y + row.height - 4, panel.y + panel.height - height - theme.padding);
-        return new GuiBounds(x, y, width, height);
+        return new GuiBounds(control.x, y, control.width, option.choices().size() * DROP_ITEM_HEIGHT + 2);
     }
 
     private GuiBounds controlBounds(GuiBounds row, ConfigOption option) {
         if (option.type() == EditorType.MODE) {
-            return modeArrowBounds(row);
+            return ControlLayout.mode(row);
         }
         if (option.type() == EditorType.BOOLEAN) {
-            return rightBounds(row, 34, 16);
+            return ControlLayout.switchControl(row);
         }
         if (option.type() == EditorType.NUMBER) {
-            GuiBounds bounds = rightBounds(row, SLIDER_TRACK_WIDTH + SLIDER_FIELD_WIDTH + 6, 22);
-            return new GuiBounds(bounds.x - SLIDER_HANDLE_PAD, bounds.y, bounds.width + SLIDER_HANDLE_PAD * 2,
-                    bounds.height);
+            return ControlLayout.number(row);
         }
         if (option.type() == EditorType.COLOR) {
-            return rightBounds(row, 40, 18);
+            return ControlLayout.colorSwatch(row);
         }
         if (option.type() == EditorType.KEYBIND) {
-            return rightBounds(row, 80, 18);
+            return ControlLayout.keybind(row);
         }
         if (option.type() == EditorType.BUTTON) {
-            return rightBounds(row, 64, 18);
+            return ControlLayout.button(row);
         }
-        return rightBounds(row, EDITOR_WIDTH, option.type() == EditorType.MULTILINE_TEXT ? 42 : 18);
-    }
-
-    private GuiBounds modeArrowBounds(GuiBounds row) {
-        GuiBounds full = rightBounds(row, EDITOR_WIDTH, 18);
-        return new GuiBounds(full.x, full.y, full.width, full.height);
-    }
-
-    private GuiBounds sliderTrackBounds(GuiBounds row) {
-        int x = row.x + row.width - SLIDER_TRACK_WIDTH - SLIDER_FIELD_WIDTH - 6 - CONTROL_RIGHT_PADDING;
-        return new GuiBounds(x, row.y + 7, SLIDER_TRACK_WIDTH, 18);
-    }
-
-    private GuiBounds sliderHitBounds(GuiBounds row) {
-        GuiBounds track = sliderTrackBounds(row);
-        return new GuiBounds(track.x - SLIDER_HANDLE_PAD, track.y - SLIDER_HANDLE_PAD,
-                track.width + SLIDER_HANDLE_PAD * 2, track.height + SLIDER_HANDLE_PAD * 2);
-    }
-
-    private GuiBounds sliderFieldBounds(GuiBounds row) {
-        int x = row.x + row.width - SLIDER_FIELD_WIDTH - CONTROL_RIGHT_PADDING;
-        return new GuiBounds(x, row.y + 7, SLIDER_FIELD_WIDTH, 18);
-    }
-
-    private GuiBounds colorHexBounds(GuiBounds picker) {
-        return new GuiBounds(picker.x + COLOR_PICKER_PADDING + COLOR_PICKER_PREVIEW_WIDTH + COLOR_PICKER_TRACK_GAP,
-                colorPickerControlsY(picker),
-                picker.width - COLOR_PICKER_PADDING * 2 - COLOR_PICKER_PREVIEW_WIDTH - COLOR_PICKER_TRACK_GAP,
-                COLOR_PICKER_FIELD_HEIGHT);
-    }
-
-    private GuiBounds colorPreviewBounds(GuiBounds picker) {
-        return new GuiBounds(picker.x + COLOR_PICKER_PADDING, colorPickerControlsY(picker),
-                COLOR_PICKER_PREVIEW_WIDTH, COLOR_PICKER_FIELD_HEIGHT);
-    }
-
-    private int colorPickerControlsY(GuiBounds picker) {
-        return picker.y + COLOR_PICKER_PADDING + COLOR_PICKER_HEIGHT + COLOR_PICKER_ROW_GAP;
-    }
-
-    private int colorPickerWidth(ConfigOption option) {
-        int tracks = COLOR_PICKER_TRACK_GAP + COLOR_PICKER_TRACK_WIDTH;
-        if (option.colorAlpha()) {
-            tracks += COLOR_PICKER_ALPHA_GAP + COLOR_PICKER_TRACK_WIDTH;
-        }
-        return COLOR_PICKER_PADDING * 2 + COLOR_PICKER_SQUARE_WIDTH + tracks;
-    }
-
-    private int colorPickerHeight() {
-        return COLOR_PICKER_PADDING * 2 + COLOR_PICKER_HEIGHT + COLOR_PICKER_ROW_GAP
-                + COLOR_PICKER_FIELD_HEIGHT;
-    }
-
-    private GuiBounds keybindClearBounds(GuiBounds row) {
-        GuiBounds keybind = rightBounds(row, 80, 18);
-        return new GuiBounds(keybind.x + 64, keybind.y, 16, 18);
-    }
-
-    private GuiBounds rightBounds(GuiBounds row, int width, int height) {
-        return new GuiBounds(row.x + row.width - width - CONTROL_RIGHT_PADDING, row.y + (row.height - height) / 2,
-                width, height);
+        return ControlLayout.text(row, option.type() == EditorType.MULTILINE_TEXT);
     }
 
     private int contentX(GuiBounds panel) {
@@ -1006,8 +871,6 @@ public final class ConfigGui implements EditorContext {
                 theme.borderDark);
         boxed(renderer, thumb, thumbHovered ? theme.panelRaised : theme.panel,
                 thumbHovered ? theme.accent : theme.border);
-        renderer.fill(thumb.x + 3, thumb.y + 3, thumb.x + thumb.width - 3, thumb.y + thumb.height - 3,
-                thumbHovered ? theme.accentDark : theme.borderDark);
     }
 
     private boolean handleScrollbarClick(GuiBounds panel, int mouseX, int mouseY) {
@@ -1061,114 +924,12 @@ public final class ConfigGui implements EditorContext {
         return false;
     }
 
-    private boolean handleColorPickerMouse(GuiBounds panel, int mouseX, int mouseY, boolean pressed) {
-        if (!interactive(openColorPicker)) {
-            openColorPicker = null;
-            colorDrag = ColorDrag.NONE;
-            activeOption = null;
-            return true;
-        }
-        GuiBounds picker = colorPickerBounds(panel, openColorPicker);
-        int squareX = picker.x + COLOR_PICKER_PADDING;
-        int squareY = picker.y + COLOR_PICKER_PADDING;
-        GuiBounds square = new GuiBounds(squareX, squareY, COLOR_PICKER_SQUARE_WIDTH, COLOR_PICKER_HEIGHT);
-        int hueX = squareX + COLOR_PICKER_SQUARE_WIDTH + COLOR_PICKER_TRACK_GAP;
-        GuiBounds hue = new GuiBounds(hueX, squareY, COLOR_PICKER_TRACK_WIDTH, COLOR_PICKER_HEIGHT);
-        GuiBounds alpha = new GuiBounds(hueX + COLOR_PICKER_TRACK_WIDTH + COLOR_PICKER_ALPHA_GAP, squareY,
-                COLOR_PICKER_TRACK_WIDTH, COLOR_PICKER_HEIGHT);
-        if (pressed) {
-            if (square.contains(mouseX, mouseY)) {
-                colorDrag = ColorDrag.SQUARE;
-                activeOption = openColorPicker;
-                focusedOption = null;
-            } else if (hue.contains(mouseX, mouseY)) {
-                colorDrag = ColorDrag.HUE;
-                activeOption = openColorPicker;
-                focusedOption = null;
-            } else if (openColorPicker.colorAlpha() && alpha.contains(mouseX, mouseY)) {
-                colorDrag = ColorDrag.ALPHA;
-                activeOption = openColorPicker;
-                focusedOption = null;
-            } else if (colorHexBounds(picker).contains(mouseX, mouseY)) {
-                focusedOption = openColorPicker;
-                activeOption = openColorPicker;
-                focusColor(openColorPicker, colorHexBounds(picker), mouseX);
-                colorDrag = ColorDrag.NONE;
-                return true;
-            } else if (!picker.contains(mouseX, mouseY)) {
-                openColorPicker = null;
-                return false;
-            }
-        }
-        if (colorDrag == ColorDrag.NONE) {
-            return picker.contains(mouseX, mouseY);
-        }
-        ColorPickerState state = colorState(openColorPicker);
-        syncColorState(openColorPicker, state);
-        if (colorDrag == ColorDrag.SQUARE) {
-            applyColorPickerState(openColorPicker, state.hue,
-                    clamp((mouseX - squareX) / (float) COLOR_PICKER_SQUARE_WIDTH),
-                    1.0F - clamp((mouseY - squareY) / (float) COLOR_PICKER_HEIGHT),
-                    color(openColorPicker) >>> 24 & 0xFF);
-        } else if (colorDrag == ColorDrag.HUE) {
-            applyColorPickerState(openColorPicker, clamp((mouseY - squareY) / (float) COLOR_PICKER_HEIGHT),
-                    state.saturation, state.value, color(openColorPicker) >>> 24 & 0xFF);
-        } else if (colorDrag == ColorDrag.ALPHA) {
-            int alphaValue = Math.round(clamp((mouseY - squareY) / (float) COLOR_PICKER_HEIGHT) * 255.0F);
-            openColorPicker.set((alphaValue << 24) | (color(openColorPicker) & 0x00FFFFFF));
-            state.lastColor = color(openColorPicker);
-        }
-        return true;
-    }
-
-    private ColorPickerState colorState(ConfigOption option) {
-        ColorPickerState state = colorStates.get(option);
-        if (state == null) {
-            state = new ColorPickerState();
-            int color = color(option);
-            float[] hsv = rgbToHsv(color);
-            state.hue = hsv[0];
-            state.saturation = hsv[1];
-            state.value = hsv[2];
-            state.lastColor = color;
-            colorStates.put(option, state);
-        }
-        return state;
-    }
-
-    private void syncColorState(ConfigOption option, ColorPickerState state) {
-        int current = color(option);
-        if (current == state.lastColor) {
-            return;
-        }
-        float[] hsv = rgbToHsv(current);
-        if (hsv[1] > 0.0F && hsv[2] > 0.0F) {
-            state.hue = hsv[0];
-        }
-        if (hsv[2] > 0.0F) {
-            state.saturation = hsv[1];
-        }
-        state.value = hsv[2];
-        state.lastColor = current;
-    }
-
-    private void applyColorPickerState(ConfigOption option, float hue, float saturation, float value, int alpha) {
-        ColorPickerState state = colorState(option);
-        state.hue = hue;
-        state.saturation = saturation;
-        state.value = value;
-        int nextAlpha = option.colorAlpha() ? alpha : 0xFF;
-        int next = (nextAlpha << 24) | hsvToRgb(hue, saturation, value);
-        option.set(next);
-        state.lastColor = color(option);
-    }
-
     private void setSliderValue(ConfigOption option, GuiBounds bounds, int mouseX) {
         NumberRange range = option.range();
         if (range == null) {
             return;
         }
-        GuiBounds track = sliderTrackBounds(bounds);
+        GuiBounds track = ControlLayout.sliderTrack(bounds);
         double progress = Math.max(0.0D, Math.min(1.0D, (mouseX - track.x) / (double) track.width));
         option.set(range.min() + (range.max() - range.min()) * progress);
     }
@@ -1184,7 +945,7 @@ public final class ConfigGui implements EditorContext {
     }
 
     private int modeDirection(GuiBounds row, int mouseX) {
-        GuiBounds control = rightBounds(row, EDITOR_WIDTH, 18);
+        GuiBounds control = ControlLayout.mode(row);
         if (mouseX < control.x + 20) {
             return -1;
         }
@@ -1213,8 +974,7 @@ public final class ConfigGui implements EditorContext {
         state.filter(TextInputState.CharacterFilter.ANY);
         if (renderer != null) {
             state.cursorAt(renderer, firstLine(text),
-                    bounds.x + bounds.width - EDITOR_WIDTH - CONTROL_RIGHT_PADDING + 5,
-                    mouseX);
+                    ControlLayout.text(bounds, option.type() == EditorType.MULTILINE_TEXT).x + 5, mouseX);
         }
     }
 
@@ -1233,14 +993,16 @@ public final class ConfigGui implements EditorContext {
         if (renderer == null) {
             return;
         }
-        GuiBounds field = sliderFieldBounds(row);
+        GuiBounds field = ControlLayout.sliderField(row);
         TextInputState state = textState(option);
         state.cursorAt(renderer, state.text(), field.x + 5, mouseX);
     }
 
-    private void focusColor(ConfigOption option, GuiBounds hex, int mouseX) {
+    void focusColor(ConfigOption option, GuiBounds hex, int mouseX) {
+        focusedOption = option;
+        activeOption = option;
         TextInputState state = textState(option);
-        state.text(colorHex(option));
+        state.text(ColorPickerPopup.format(option));
         state.maxLength(option.colorAlpha() ? 9 : 7);
         state.filter(new TextInputState.CharacterFilter() {
             public boolean accept(char character) {
@@ -1250,6 +1012,15 @@ public final class ConfigGui implements EditorContext {
         if (renderer != null) {
             state.cursorAt(renderer, state.text(), hex.x + 5, mouseX);
         }
+    }
+
+    void activatePopup(ConfigOption option) {
+        activeOption = option;
+        focusedOption = null;
+    }
+
+    void clearPopupActive() {
+        activeOption = null;
     }
 
     private boolean isTextSelectionOption(ConfigOption option) {
@@ -1264,17 +1035,17 @@ public final class ConfigGui implements EditorContext {
         TextInputState state = textState(option);
         if (option.type() == EditorType.TEXT || option.type() == EditorType.MULTILINE_TEXT) {
             GuiBounds row = optionBounds(panel, option);
-            GuiBounds control = controlBounds(row, option);
+            GuiBounds control = ControlLayout.text(row, option.type() == EditorType.MULTILINE_TEXT);
             state.selectAt(renderer, firstLine(state.text()), control.x + 5, mouseX);
             return;
         }
         if (option.type() == EditorType.NUMBER) {
-            GuiBounds field = sliderFieldBounds(optionBounds(panel, option));
+            GuiBounds field = ControlLayout.sliderField(optionBounds(panel, option));
             state.selectAt(renderer, state.text(), field.x + 5, mouseX);
             return;
         }
-        if (option.type() == EditorType.COLOR && option == openColorPicker) {
-            GuiBounds hex = colorHexBounds(colorPickerBounds(panel, option));
+        if (option.type() == EditorType.COLOR && colorPicker.isOpen(option)) {
+            GuiBounds hex = colorPicker.hexBounds(panel, option, optionBounds(panel, option), theme.padding);
             state.selectAt(renderer, state.text(), hex.x + 5, mouseX);
         }
     }
@@ -1314,13 +1085,13 @@ public final class ConfigGui implements EditorContext {
         TextInputState state = textState(option);
         KeyResult result = state.keyTyped(Character.toUpperCase(typedChar), keyCode, shift, control, false);
         if (result == KeyResult.CHANGED) {
-            parseColor(option, state.text());
+            ColorPickerPopup.parse(option, state.text());
         } else if (result == KeyResult.COMMIT) {
-            parseColor(option, state.text());
-            state.text(colorHex(option));
+            ColorPickerPopup.parse(option, state.text());
+            state.text(ColorPickerPopup.format(option));
             focusedOption = null;
         } else if (result == KeyResult.CANCEL) {
-            state.text(colorHex(option));
+            state.text(ColorPickerPopup.format(option));
             focusedOption = null;
         }
     }
@@ -1328,9 +1099,8 @@ public final class ConfigGui implements EditorContext {
     private void cancelFocus() {
         focusedOption = null;
         openDropdown = null;
-        openColorPicker = null;
+        colorPicker.close();
         activeOption = null;
-        colorDrag = ColorDrag.NONE;
     }
 
     private void parseNumber(ConfigOption option, String text) {
@@ -1342,28 +1112,7 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
-    private void parseColor(ConfigOption option, String text) {
-        String value = text == null ? "" : text.trim();
-        if (value.startsWith("#")) {
-            value = value.substring(1);
-        }
-        if (value.length() != 6 && (!option.colorAlpha() || value.length() != 8)) {
-            return;
-        }
-        try {
-            if (value.length() == 6) {
-                option.set(0xFF000000 | (int) Long.parseLong(value, 16));
-                return;
-            }
-            long rgba = Long.parseLong(value, 16);
-            int rgb = (int) ((rgba >>> 8) & 0xFFFFFFL);
-            int alpha = (int) (rgba & 0xFFL);
-            option.set((alpha << 24) | rgb);
-        } catch (NumberFormatException ignored) {
-        }
-    }
-
-    private void drawTextField(GuiRenderer renderer, GuiBounds bounds, String text, int cursor, int selectionStart,
+    void drawTextField(GuiRenderer renderer, GuiBounds bounds, String text, int cursor, int selectionStart,
             int selectionEnd, boolean hovered, boolean focused) {
         renderer.fill(bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height,
                 hovered || focused ? theme.panelRaised : theme.panel);
@@ -1422,8 +1171,7 @@ public final class ConfigGui implements EditorContext {
 
     private void closePopups() {
         openDropdown = null;
-        openColorPicker = null;
-        colorDrag = ColorDrag.NONE;
+        colorPicker.close();
     }
 
     private boolean collapsed(ConfigGroup group) {
@@ -1468,37 +1216,6 @@ public final class ConfigGui implements EditorContext {
                 bounds.y + bounds.height, theme.borderDark);
     }
 
-    private void drawPickerHandle(GuiRenderer renderer, int centerX, int centerY) {
-        GuiBounds handle = new GuiBounds(centerX - 3, centerY - 3, 7, 7);
-        boxed(renderer, handle, theme.panelRaised, theme.text);
-        renderer.fill(handle.x + 2, handle.y + 2, handle.x + handle.width - 2, handle.y + handle.height - 2,
-                theme.borderDark);
-    }
-
-    private void drawVerticalTrackHandle(GuiRenderer renderer, int trackX, int centerY, boolean enabled) {
-        int x = trackX - 2;
-        int y = centerY - 3;
-        int fill = enabled ? theme.panelRaised : theme.panel;
-        int border = enabled ? theme.border : theme.borderDark;
-        boxed(renderer, new GuiBounds(x, y, COLOR_PICKER_TRACK_WIDTH + 4, 7), fill, border);
-    }
-
-    private void drawAlphaTrack(GuiRenderer renderer, int x, int y, int color) {
-        renderer.fill(x, y, x + COLOR_PICKER_TRACK_WIDTH, y + COLOR_PICKER_HEIGHT, theme.slot);
-        int rgb = color & 0x00FFFFFF;
-        for (int offset = 0; offset < COLOR_PICKER_HEIGHT; offset += 2) {
-            int alpha = Math.round(offset / (float) COLOR_PICKER_HEIGHT * 255.0F);
-            renderer.fill(x, y + offset, x + COLOR_PICKER_TRACK_WIDTH, y + offset + 2, (alpha << 24) | rgb);
-        }
-    }
-
-    private void drawBorder(GuiRenderer renderer, int x, int y, int width, int height, int color) {
-        renderer.fill(x, y, x + width, y + 1, color);
-        renderer.fill(x, y, x + 1, y + height, color);
-        renderer.fill(x, y + height - 1, x + width, y + height, theme.borderDark);
-        renderer.fill(x + width - 1, y, x + width, y + height, theme.borderDark);
-    }
-
     private void drawChevron(GuiRenderer renderer, int x, int y, Direction direction, int color) {
         if (direction == Direction.DOWN) {
             renderer.fill(x, y, x + 7, y + 1, color);
@@ -1515,122 +1232,9 @@ public final class ConfigGui implements EditorContext {
         }
     }
 
-    private static int color(ConfigOption option) {
-        return option.get() instanceof Number ? ((Number) option.get()).intValue() : 0xFFFFFFFF;
-    }
-
-    private static String hex(int color) {
-        return hex(color, true);
-    }
-
-    private static String hex(int color, boolean alpha) {
-        String rgb = Integer.toHexString(color & 0x00FFFFFF).toUpperCase();
-        while (rgb.length() < 6) {
-            rgb = "0" + rgb;
-        }
-        if (!alpha) {
-            return "#" + rgb;
-        }
-        int alphaValue = color >>> 24 & 0xFF;
-        String alphaHex = Integer.toHexString(alphaValue).toUpperCase();
-        if (alphaHex.length() < 2) {
-            alphaHex = "0" + alphaHex;
-        }
-        return "#" + rgb + alphaHex;
-    }
-
-    private static String colorHex(ConfigOption option) {
-        return hex(color(option), option.colorAlpha());
-    }
-
     private static boolean isHex(char character) {
         return (character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')
                 || (character >= 'A' && character <= 'F');
-    }
-
-    private static float clamp(float value) {
-        return Math.max(0.0F, Math.min(1.0F, value));
-    }
-
-    private static float[] rgbToHsv(int color) {
-        float red = ((color >> 16) & 0xFF) / 255.0F;
-        float green = ((color >> 8) & 0xFF) / 255.0F;
-        float blue = (color & 0xFF) / 255.0F;
-        float max = Math.max(red, Math.max(green, blue));
-        float min = Math.min(red, Math.min(green, blue));
-        float delta = max - min;
-        float hue;
-        if (delta == 0.0F) {
-            hue = 0.0F;
-        } else if (max == red) {
-            hue = ((green - blue) / delta) % 6.0F;
-        } else if (max == green) {
-            hue = (blue - red) / delta + 2.0F;
-        } else {
-            hue = (red - green) / delta + 4.0F;
-        }
-        hue /= 6.0F;
-        if (hue < 0.0F) {
-            hue += 1.0F;
-        }
-        float saturation = max == 0.0F ? 0.0F : delta / max;
-        return new float[]{hue, saturation, max};
-    }
-
-    private static int hsvToRgb(float hue, float saturation, float value) {
-        float scaled = hue * 6.0F;
-        int section = (int) Math.floor(scaled);
-        float fraction = scaled - section;
-        float p = value * (1.0F - saturation);
-        float q = value * (1.0F - fraction * saturation);
-        float t = value * (1.0F - (1.0F - fraction) * saturation);
-        float red;
-        float green;
-        float blue;
-        switch (section % 6) {
-            case 0 :
-                red = value;
-                green = t;
-                blue = p;
-                break;
-            case 1 :
-                red = q;
-                green = value;
-                blue = p;
-                break;
-            case 2 :
-                red = p;
-                green = value;
-                blue = t;
-                break;
-            case 3 :
-                red = p;
-                green = q;
-                blue = value;
-                break;
-            case 4 :
-                red = t;
-                green = p;
-                blue = value;
-                break;
-            default :
-                red = value;
-                green = p;
-                blue = q;
-                break;
-        }
-        return Math.round(red * 255.0F) << 16 | Math.round(green * 255.0F) << 8 | Math.round(blue * 255.0F);
-    }
-
-    private enum ColorDrag {
-        NONE, SQUARE, HUE, ALPHA
-    }
-
-    private static final class ColorPickerState {
-        private float hue;
-        private float saturation;
-        private float value;
-        private int lastColor;
     }
 
     private enum Direction {

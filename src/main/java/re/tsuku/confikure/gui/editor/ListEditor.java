@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
+import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigOption;
 
@@ -13,12 +14,10 @@ final class ListEditor implements OptionEditor {
             EditorContext context) {
         Object value = option.get();
         int size = value instanceof List ? ((List<?>) value).size() : 0;
-        int width = 64;
-        int x = bounds.x + bounds.width - width - 6;
-        int y = bounds.y + (bounds.height - 18) / 2;
-        EditorDraw.frame(renderer, x, y, width, 18, theme, context.hovered(option), context.active(option),
-                option.enabled());
-        renderer.centeredText(size + " items", x, y + 5, width,
+        GuiBounds control = ControlLayout.list(bounds);
+        EditorDraw.frame(renderer, control.x, control.y, control.width, control.height, theme, context.hovered(option),
+                context.active(option), option.enabled());
+        renderer.centeredText(size + " items", control.x, control.y + 5, control.width,
                 option.enabled() ? theme.mutedText : theme.disabledText);
     }
 

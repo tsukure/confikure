@@ -2,6 +2,7 @@ package re.tsuku.confikure.gui.editor;
 
 import re.tsuku.confikure.gui.ConfigTheme;
 import re.tsuku.confikure.gui.GuiBounds;
+import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigOption;
 
@@ -14,15 +15,13 @@ final class TextEditor implements OptionEditor {
 
     public void render(ConfigOption option, GuiBounds bounds, GuiRenderer renderer, ConfigTheme theme,
             EditorContext context) {
-        int width = 142;
-        int x = bounds.x + bounds.width - width - 6;
-        int height = multiline ? 42 : 18;
-        int y = bounds.y + (bounds.height - height) / 2;
+        GuiBounds control = ControlLayout.text(bounds, multiline);
         String text = String.valueOf(option.get());
         String line = firstLine(text);
         int cursor = Math.max(0, Math.min(context.textCursor(option), text.length()));
-        EditorDraw.textField(renderer, theme, x, y, width, height, line, cursor, context.textSelectionStart(option),
-                context.textSelectionEnd(option), context.hovered(option), context.focused(option),
+        EditorDraw.textField(renderer, theme, control.x, control.y, control.width, control.height, line, cursor,
+                context.textSelectionStart(option), context.textSelectionEnd(option), context.hovered(option),
+                context.focused(option),
                 option.enabled(), multiline);
     }
 

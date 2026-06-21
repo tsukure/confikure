@@ -1,4 +1,4 @@
-package re.tsuku.confikure.gui;
+package re.tsuku.confikure.gui.format;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -6,11 +6,11 @@ import java.util.Locale;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.NumberRange;
 
-final class NumberDisplay {
+public final class NumberDisplay {
     private NumberDisplay() {
     }
 
-    static String format(ConfigOption option) {
+    public static String format(ConfigOption option) {
         Object value = option.get();
         if (!(value instanceof Number)) {
             return String.valueOf(value);

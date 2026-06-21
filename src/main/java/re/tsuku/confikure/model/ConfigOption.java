@@ -326,10 +326,6 @@ public final class ConfigOption {
     }
 
     private static OptionCondition always() {
-        return new OptionCondition() {
-            public boolean test() {
-                return true;
-            }
-        };
+        return AlwaysOptionCondition.INSTANCE;
     }
 }

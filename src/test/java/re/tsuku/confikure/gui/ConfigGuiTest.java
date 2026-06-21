@@ -123,6 +123,21 @@ public final class ConfigGuiTest {
     }
 
     @Test
+    public void focusedNumberFieldDoesNotBlockSliderDragging() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+
+        gui.selectedCategory(0);
+        gui.click(800, 600, 670, 212);
+        gui.click(800, 600, 584, 212);
+        gui.drag(800, 600, 670, 212);
+        gui.release();
+
+        assertEquals(2.0D, config.movement.speed, 0.0D);
+        assertFalse(gui.keyTyped('\0', 28));
+    }
+
+    @Test
     public void colorDisplayUsesHexText() {
         ExampleConfig config = new ExampleConfig();
         ConfigDefinition definition = Confikure.scan(config);

@@ -237,11 +237,7 @@ public final class TextInputState {
     }
 
     public interface CharacterFilter {
-        CharacterFilter ANY = new CharacterFilter() {
-            public boolean accept(char character) {
-                return true;
-            }
-        };
+        CharacterFilter ANY = AcceptAllCharacterFilter.INSTANCE;
 
         boolean accept(char character);
     }

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import org.junit.Test;
+import re.tsuku.confikure.gui.format.NumberDisplay;
 import re.tsuku.confikure.model.ConfigOption;
 import re.tsuku.confikure.model.EditorType;
 import re.tsuku.confikure.model.NumberRange;

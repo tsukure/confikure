@@ -1,9 +1,5 @@
 package re.tsuku.confikure.dev;
 
-import java.io.File;
-import net.minecraft.client.Minecraft;
-import net.minecraft.command.CommandBase;
-import net.minecraft.command.ICommandSender;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -20,14 +16,6 @@ import re.tsuku.confikure.annotations.Mode;
 import re.tsuku.confikure.annotations.Multiline;
 import re.tsuku.confikure.annotations.Option;
 import re.tsuku.confikure.annotations.Range;
-import re.tsuku.confikure.forge.ConfikureForge;
-import re.tsuku.confikure.gui.ConfigColorScheme;
-import re.tsuku.confikure.gui.ConfigGui;
-import re.tsuku.confikure.gui.ConfigTheme;
-import re.tsuku.confikure.gui.GuiBounds;
-import re.tsuku.confikure.gui.platform.GuiRenderer;
-import re.tsuku.confikure.model.ConfigOption;
-import re.tsuku.confikure.model.OptionCondition;
 
 @Mod(modid = "confikure-dev", name = "confikure dev", version = "dev", clientSideOnly = true)
 public final class ConfikureDevMod {
@@ -35,62 +23,7 @@ public final class ConfikureDevMod {
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        ClientCommandHandler.instance.registerCommand(new CommandBase() {
-            public String getCommandName() {
-                return "confikure";
-            }
-
-            public String getCommandUsage(ICommandSender sender) {
-                return "/confikure";
-            }
-
-            public int getRequiredPermissionLevel() {
-                return 0;
-            }
-
-            public void processCommand(ICommandSender sender, String[] args) {
-                File file = new File(new File(Minecraft.getMinecraft().mcDataDir, "config"), "confikure-dev.json");
-                ConfikureForge.open(CONFIG, file.toPath(), new java.util.function.Consumer<ConfigGui>() {
-                    public void accept(ConfigGui gui) {
-                        gui.themeSupplier(new java.util.function.Supplier<ConfigTheme>() {
-                            public ConfigTheme get() {
-                                return ConfigColorScheme.byDisplayName(CONFIG.visuals.theme.scheme).theme();
-                            }
-                        });
-                        gui.sidebarHeader(new ConfigGui.SidebarHeader() {
-                            public void render(GuiRenderer renderer, GuiBounds bounds, ConfigTheme theme) {
-                                renderer.text("confikure", bounds.x, bounds.y, theme.text);
-                                renderer.text("dev preview", bounds.x, bounds.y + 12, theme.mutedText);
-                            }
-                        });
-                        configureDevOptions(gui);
-                    }
-                });
-            }
-        });
-    }
-
-    private static void configureDevOptions(ConfigGui gui) {
-        ConfigOption dependentDensity = gui.definition().option("dependent-density");
-        if (dependentDensity != null) {
-            dependentDensity.visibleWhen(new OptionCondition() {
-                public boolean test() {
-                    return CONFIG.general.advanced.showDependent;
-                }
-            });
-        }
-        String[] readOnly = {"read-only-switch", "read-only-slider", "read-only-dropdown", "read-only-mode",
-                "read-only-keybind", "read-only-color"};
-        for (int i = 0; i < readOnly.length; i++) {
-            ConfigOption option = gui.definition().option(readOnly[i]);
-            if (option != null) {
-                option.enabledWhen(new OptionCondition() {
-                    public boolean test() {
-                        return false;
-                    }
-                });
-            }
-        }
+        ClientCommandHandler.instance.registerCommand(new ConfikureDevCommand(CONFIG));
     }
 
     @Config(name = "confikure dev", id = "confikure-dev", description = "local development config")
@@ -209,7 +142,7 @@ public final class ConfikureDevMod {
     public static final class Preview {
         @Option(name = "description", order = 0)
         @Info
-        public String description = "Plain description text can live in the option list without a value control.";
+        public String description = "plain description text can live in the option list without a value control.";
 
         @Option(name = "read only switch", description = "disabled boolean example", order = 1)
         public boolean readOnlySwitch = true;
