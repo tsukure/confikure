@@ -7,10 +7,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license"></a>
 </p>
 
-`confikure` is a small java config and gui library for legacy minecraft forge mods.
-it targets forge 1.8.9 and java 8 bytecode.
+`confikure` is an annotation-driven config gui library for forge 1.8.9 mods.
+it scans plain java config objects, persists them as json, and renders an in-game settings screen.
 
-configs are declared with annotations, scanned at runtime, persisted as json, and opened in-game.
+<p align="center">
+  <img src=".github/assets/preview.png" alt="confikure gui preview">
+</p>
 
 ## install
 
