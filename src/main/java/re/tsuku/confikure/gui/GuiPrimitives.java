@@ -1,5 +1,6 @@
 package re.tsuku.confikure.gui;
 
+import java.util.List;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 /**
@@ -81,6 +82,11 @@ public final class GuiPrimitives {
         frame(renderer, theme, bounds.x, bounds.y, bounds.width, bounds.height, hovered, focused, enabled);
         int textX = bounds.x + 5;
         int textY = topAligned ? bounds.y + 5 : bounds.y + Math.max(2, (bounds.height - renderer.fontHeight()) / 2);
+        if (topAligned) {
+            multilineText(renderer, theme, bounds, text, cursor, selectionStart, selectionEnd, focused, enabled, textX,
+                    textY);
+            return;
+        }
         String clipped = clip(text, renderer, bounds.width - 10);
         if (enabled && selectionStart != selectionEnd) {
             int start = Math.max(0, Math.min(Math.min(selectionStart, selectionEnd), clipped.length()));
@@ -96,6 +102,61 @@ public final class GuiPrimitives {
             int cursorX = textX + renderer.textWidth(clipped.substring(0, shownCursor));
             renderer.fill(cursorX, textY - 1, cursorX + 1, textY + renderer.fontHeight(), theme.text);
         }
+    }
+
+    private static void multilineText(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, String text,
+            int cursor,
+            int selectionStart, int selectionEnd, boolean focused, boolean enabled, int textX, int textY) {
+        String value = text == null ? "" : text;
+        int safeCursor = Math.max(0, Math.min(cursor, value.length()));
+        int textWidth = Math.max(1, bounds.width - 10);
+        List<TextLayout.Line> lines = TextLayout.wrappedLines(renderer, value, textWidth);
+        int lineHeight = renderer.fontHeight();
+        int lineStep = TextLayout.lineStep(renderer);
+        int visibleLines = TextLayout.visibleLineCount(renderer, bounds.height);
+        int cursorLine = TextLayout.cursorLine(lines, safeCursor);
+        int firstLine = TextLayout.firstVisibleLine(renderer, lines, safeCursor, bounds.height, focused);
+        int lastLine = Math.min(lines.size(), firstLine + visibleLines);
+
+        renderer.pushClip(bounds.x + 1, bounds.y + 1, Math.max(0, bounds.width - 2), Math.max(0, bounds.height - 2));
+        for (int i = firstLine; i < lastLine; i++) {
+            TextLayout.Line line = lines.get(i);
+            int y = textY + (i - firstLine) * lineStep;
+            drawSelection(renderer, theme, line, textX, y, lineHeight, selectionStart, selectionEnd, enabled);
+            renderer.text(line.text(), textX, y, enabled ? theme.text : theme.disabledText);
+            if (i == cursorLine) {
+                drawCursor(renderer, theme, line, textX, y, lineHeight, safeCursor, focused, enabled);
+            }
+        }
+        renderer.popClip();
+    }
+
+    private static void drawSelection(GuiRenderer renderer, ConfigTheme theme, TextLayout.Line line, int textX, int y,
+            int lineHeight, int selectionStart, int selectionEnd, boolean enabled) {
+        if (!enabled || selectionStart == selectionEnd) {
+            return;
+        }
+        int start = Math.max(Math.min(selectionStart, selectionEnd), line.start());
+        int end = Math.min(Math.max(selectionStart, selectionEnd), line.end());
+        if (end <= start) {
+            return;
+        }
+        int left = textX + renderer.textWidth(line.text().substring(0, start - line.start()));
+        int right = textX + renderer.textWidth(line.text().substring(0, end - line.start()));
+        renderer.fill(left, y - 1, Math.max(left + 1, right), y + lineHeight, theme.accentDark);
+    }
+
+    private static void drawCursor(GuiRenderer renderer, ConfigTheme theme, TextLayout.Line line, int textX, int y,
+            int lineHeight, int cursor, boolean focused, boolean enabled) {
+        if (!enabled || !focused || (System.currentTimeMillis() / 450L) % 2L != 0L) {
+            return;
+        }
+        if (cursor < line.start() || cursor > line.end()) {
+            return;
+        }
+        int shownCursor = Math.max(0, Math.min(cursor - line.start(), line.text().length()));
+        int cursorX = textX + renderer.textWidth(line.text().substring(0, shownCursor));
+        renderer.fill(cursorX, y - 1, cursorX + 1, y + lineHeight, theme.text);
     }
 
     /**

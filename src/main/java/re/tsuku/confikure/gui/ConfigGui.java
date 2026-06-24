@@ -389,9 +389,10 @@ public final class ConfigGui implements EditorContext {
             return;
         }
         if (option.type() == EditorType.TEXT || option.type() == EditorType.MULTILINE_TEXT) {
+            boolean wasFocused = focusedOption == option;
             focusedOption = option;
             activeOption = option;
-            focusText(option, mouseX, optionBounds(panel, option));
+            focusText(option, mouseX, mouseY, optionBounds(panel, option), wasFocused);
             return;
         }
         if (option.type() == EditorType.NUMBER) {
@@ -460,7 +461,7 @@ public final class ConfigGui implements EditorContext {
             return;
         }
         if (activeOption == focusedOption && isTextSelectionOption(activeOption)) {
-            dragTextSelection(panel, activeOption, mouseX);
+            dragTextSelection(panel, activeOption, mouseX, mouseY);
             return;
         }
         if (activeOption.type() == EditorType.NUMBER) {
@@ -1132,15 +1133,21 @@ public final class ConfigGui implements EditorContext {
         option.set(0);
     }
 
-    private void focusText(ConfigOption option, int mouseX, GuiBounds bounds) {
+    private void focusText(ConfigOption option, int mouseX, int mouseY, GuiBounds bounds, boolean wasFocused) {
         TextInputState state = textState(option);
         String text = String.valueOf(option.get());
+        int viewCursor = wasFocused ? state.cursor() : 0;
         state.text(text);
         state.maxLength(option.type() == EditorType.MULTILINE_TEXT ? 2048 : 256);
         state.filter(TextInputState.CharacterFilter.ANY);
         if (renderer != null) {
-            state.cursorAt(renderer, firstLine(text),
-                    ControlLayout.text(bounds, option.type() == EditorType.MULTILINE_TEXT).x + 5, mouseX);
+            GuiBounds control = ControlLayout.text(bounds, option.type() == EditorType.MULTILINE_TEXT);
+            if (option.type() == EditorType.MULTILINE_TEXT) {
+                state.cursorAtWrapped(renderer, control.x + 5, control.y + 5, Math.max(1, control.width - 10),
+                        control.height, mouseX, mouseY, wasFocused, viewCursor);
+                return;
+            }
+            state.cursorAt(renderer, firstLine(text), control.x + 5, mouseX);
         }
     }
 
@@ -1194,14 +1201,21 @@ public final class ConfigGui implements EditorContext {
                 || option.type() == EditorType.NUMBER || option.type() == EditorType.COLOR;
     }
 
-    private void dragTextSelection(GuiBounds panel, ConfigOption option, int mouseX) {
+    private void dragTextSelection(GuiBounds panel, ConfigOption option, int mouseX, int mouseY) {
         if (renderer == null) {
             return;
         }
         TextInputState state = textState(option);
-        if (option.type() == EditorType.TEXT || option.type() == EditorType.MULTILINE_TEXT) {
+        if (option.type() == EditorType.MULTILINE_TEXT) {
             GuiBounds row = optionBounds(panel, option);
-            GuiBounds control = ControlLayout.text(row, option.type() == EditorType.MULTILINE_TEXT);
+            GuiBounds control = ControlLayout.text(row, true);
+            state.selectAtWrapped(renderer, control.x + 5, control.y + 5, Math.max(1, control.width - 10),
+                    control.height, mouseX, mouseY, true);
+            return;
+        }
+        if (option.type() == EditorType.TEXT) {
+            GuiBounds row = optionBounds(panel, option);
+            GuiBounds control = ControlLayout.text(row, false);
             state.selectAt(renderer, firstLine(state.text()), control.x + 5, mouseX);
             return;
         }

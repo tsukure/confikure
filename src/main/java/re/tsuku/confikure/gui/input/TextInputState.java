@@ -1,5 +1,6 @@
 package re.tsuku.confikure.gui.input;
 
+import re.tsuku.confikure.gui.TextLayout;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 /**
@@ -76,10 +77,36 @@ public final class TextInputState {
     }
 
     /**
+     * moves the cursor to the character nearest a mouse position in wrapped text.
+     */
+    public void cursorAtWrapped(GuiRenderer renderer, int textX, int textY, int width, int height, int mouseX,
+            int mouseY, boolean focused) {
+        cursorAtWrapped(renderer, textX, textY, width, height, mouseX, mouseY, focused, cursor);
+    }
+
+    /**
+     * moves the cursor to the character nearest a mouse position using a separate cursor as the visible anchor.
+     */
+    public void cursorAtWrapped(GuiRenderer renderer, int textX, int textY, int width, int height, int mouseX,
+            int mouseY, boolean focused, int viewCursor) {
+        cursor = TextLayout.positionAt(renderer, text, width, height, viewCursor, focused, textX, textY, mouseX,
+                mouseY);
+        selection = cursor;
+    }
+
+    /**
      * extends selection to the character nearest a mouse x coordinate.
      */
     public void selectAt(GuiRenderer renderer, String visibleText, int textX, int mouseX) {
         cursor = positionAt(renderer, visibleText, textX, mouseX);
+    }
+
+    /**
+     * extends selection to the character nearest a mouse position in wrapped text.
+     */
+    public void selectAtWrapped(GuiRenderer renderer, int textX, int textY, int width, int height, int mouseX,
+            int mouseY, boolean focused) {
+        cursor = TextLayout.positionAt(renderer, text, width, height, cursor, focused, textX, textY, mouseX, mouseY);
     }
 
     /**
@@ -91,7 +118,7 @@ public final class TextInputState {
             return KeyResult.CANCEL;
         }
         if (keyCode == 28 || keyCode == 156) {
-            if (multiline && shift && !control) {
+            if (multiline && !control) {
                 insert("\n");
                 return KeyResult.CHANGED;
             }

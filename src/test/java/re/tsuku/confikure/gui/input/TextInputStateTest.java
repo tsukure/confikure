@@ -107,15 +107,47 @@ public final class TextInputStateTest {
     }
 
     @Test
-    public void shiftEnterOnlyInsertsNewlineForMultilineFields() {
+    public void cursorAtWrappedUsesMouseYForExplicitLines() {
+        TextInputState state = new TextInputState();
+        state.text("abc\ndef");
+
+        state.cursorAtWrapped(new TestRenderer(), 0, 0, 100, 42, 0, 11, false);
+
+        assertEquals(4, state.cursor());
+    }
+
+    @Test
+    public void cursorAtWrappedUsesMouseYForSoftWrappedLines() {
+        TextInputState state = new TextInputState();
+        state.text("abcdef");
+
+        state.cursorAtWrapped(new TestRenderer(), 0, 0, 18, 42, 0, 11, false);
+
+        assertEquals(3, state.cursor());
+    }
+
+    @Test
+    public void enterInsertsNewlineForMultilineFields() {
         TextInputState state = new TextInputState();
         state.text("hello");
 
-        assertEquals(KeyResult.COMMIT, state.keyTyped('\0', 28, true, false, false));
+        assertEquals(KeyResult.COMMIT, state.keyTyped('\0', 28, false, false, false));
         assertEquals("hello", state.text());
 
-        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 28, true, false, true));
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 28, false, false, true));
         assertEquals("hello\n", state.text());
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 28, true, false, true));
+        assertEquals("hello\n\n", state.text());
+    }
+
+    @Test
+    public void controlEnterCommitsMultilineFields() {
+        TextInputState state = new TextInputState();
+        state.text("hello");
+
+        assertEquals(KeyResult.COMMIT, state.keyTyped('\0', 28, false, true, true));
+        assertEquals("hello", state.text());
     }
 
     private static final class TestRenderer implements GuiRenderer {

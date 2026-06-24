@@ -268,12 +268,37 @@ public final class ConfigGuiTest {
         gui.keyTyped('\0', 30, false, true);
         gui.keyTyped('x', 0);
         assertTrue(gui.keyTyped('\0', 28));
-        assertEquals("x", config.visuals.notes);
+        assertEquals("x\n", config.visuals.notes);
+        assertTrue(gui.keyTyped('\0', 28, false, true));
+        assertEquals("x\n", config.visuals.notes);
+        assertFalse(gui.keyTyped('\0', 1));
+
+        clickControl(gui, "label");
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('x', 0);
+        assertTrue(gui.keyTyped('\0', 28));
+        assertEquals("x", config.visuals.label);
         assertFalse(gui.keyTyped('\0', 1));
 
         clickControl(gui, "primary-color");
         assertTrue(gui.keyTyped('\0', 1));
         assertFalse(gui.keyTyped('\0', 1));
+    }
+
+    @Test
+    public void multilineTextClickCanPlaceCursorOnLaterLines() {
+        ExampleConfig config = new ExampleConfig();
+        config.visuals.notes = "abc\ndef";
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+        TestRenderer renderer = new TestRenderer();
+
+        gui.selectedCategory(1);
+        gui.render(renderer, WIDTH, HEIGHT, 0, 0);
+        GuiBounds control = gui.controlBounds(WIDTH, HEIGHT, option(gui, "notes"));
+        gui.click(WIDTH, HEIGHT, control.x + 5, control.y + 5 + renderer.fontHeight() + 2);
+        gui.keyTyped('x', 0);
+
+        assertEquals("abc\nxdef", config.visuals.notes);
     }
 
     @Test
