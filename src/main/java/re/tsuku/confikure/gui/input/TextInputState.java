@@ -1,6 +1,7 @@
 package re.tsuku.confikure.gui.input;
 
 import re.tsuku.confikure.gui.TextLayout;
+import re.tsuku.confikure.gui.platform.ClipboardAccess;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 /**
@@ -77,6 +78,15 @@ public final class TextInputState {
     }
 
     /**
+     * moves the cursor to the character nearest a mouse x coordinate in a horizontally scrolled field.
+     */
+    public void cursorAtWindow(GuiRenderer renderer, int textX, int width, int mouseX, boolean focused,
+            int viewCursor) {
+        cursor = TextLayout.singleLinePositionAt(renderer, text, width, viewCursor, focused, textX, mouseX);
+        selection = cursor;
+    }
+
+    /**
      * moves the cursor to the character nearest a mouse position in wrapped text.
      */
     public void cursorAtWrapped(GuiRenderer renderer, int textX, int textY, int width, int height, int mouseX,
@@ -102,6 +112,13 @@ public final class TextInputState {
     }
 
     /**
+     * extends selection to the character nearest a mouse x coordinate in a horizontally scrolled field.
+     */
+    public void selectAtWindow(GuiRenderer renderer, int textX, int width, int mouseX, boolean focused) {
+        cursor = TextLayout.singleLinePositionAt(renderer, text, width, selection, focused, textX, mouseX);
+    }
+
+    /**
      * extends selection to the character nearest a mouse position in wrapped text.
      */
     public void selectAtWrapped(GuiRenderer renderer, int textX, int textY, int width, int height, int mouseX,
@@ -113,6 +130,14 @@ public final class TextInputState {
      * applies one typed key and returns how the caller should react.
      */
     public KeyResult keyTyped(char typedChar, int keyCode, boolean shift, boolean control, boolean multiline) {
+        return keyTyped(typedChar, keyCode, shift, control, multiline, ClipboardAccess.NONE);
+    }
+
+    /**
+     * applies one typed key and returns how the caller should react.
+     */
+    public KeyResult keyTyped(char typedChar, int keyCode, boolean shift, boolean control, boolean multiline,
+            ClipboardAccess clipboard) {
         clamp();
         if (keyCode == 1) {
             return KeyResult.CANCEL;
@@ -128,6 +153,16 @@ public final class TextInputState {
             cursor = text.length();
             selection = 0;
             return KeyResult.USED;
+        }
+        if (control && keyCode == 46) {
+            copy(clipboard);
+            return KeyResult.USED;
+        }
+        if (control && keyCode == 45) {
+            return cut(clipboard);
+        }
+        if (control && keyCode == 47) {
+            return paste(clipboard, multiline);
         }
         if (keyCode == 203) {
             moveTo(control ? wordBoundaryLeft(cursor) : cursor - 1, shift);
@@ -172,6 +207,16 @@ public final class TextInputState {
             return KeyResult.CHANGED;
         }
         return KeyResult.USED;
+    }
+
+    /**
+     * returns selected text, or an empty string when there is no active selection.
+     */
+    public String selectedText() {
+        if (cursor == selection) {
+            return "";
+        }
+        return text.substring(selectionStart(), selectionEnd());
     }
 
     private void insert(String value) {
@@ -235,6 +280,55 @@ public final class TextInputState {
         text = text.substring(0, start) + replacement + text.substring(end);
         cursor = start + replacement.length();
         selection = cursor;
+    }
+
+    private void copy(ClipboardAccess clipboard) {
+        String selected = selectedText();
+        if (!selected.isEmpty()) {
+            clipboard.set(selected);
+        }
+    }
+
+    private KeyResult cut(ClipboardAccess clipboard) {
+        String selected = selectedText();
+        if (selected.isEmpty()) {
+            return KeyResult.USED;
+        }
+        clipboard.set(selected);
+        replaceSelection("");
+        return KeyResult.CHANGED;
+    }
+
+    private KeyResult paste(ClipboardAccess clipboard, boolean multiline) {
+        String pasted = clipboard.get();
+        if (pasted == null || pasted.isEmpty()) {
+            return KeyResult.USED;
+        }
+        String sanitized = sanitizedPaste(pasted, multiline);
+        if (sanitized.isEmpty()) {
+            return KeyResult.USED;
+        }
+        insert(sanitized);
+        return KeyResult.CHANGED;
+    }
+
+    private String sanitizedPaste(String value, boolean multiline) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (character == '\r') {
+                if (i + 1 < value.length() && value.charAt(i + 1) == '\n') {
+                    continue;
+                }
+                character = multiline ? '\n' : ' ';
+            } else if (character == '\n') {
+                character = multiline ? '\n' : ' ';
+            }
+            if (character == '\n' || character >= 32 && character != 127 && filter.accept(character)) {
+                builder.append(character);
+            }
+        }
+        return builder.toString();
     }
 
     private void moveTo(int next, boolean selecting) {

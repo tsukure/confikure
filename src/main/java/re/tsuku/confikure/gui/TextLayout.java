@@ -41,6 +41,35 @@ public final class TextLayout {
     }
 
     /**
+     * returns a horizontally scrolled single-line window that keeps the cursor visible.
+     */
+    public static Line singleLineWindow(GuiRenderer renderer, String text, int width, int cursor) {
+        String value = text == null ? "" : text;
+        int safeCursor = Math.max(0, Math.min(cursor, value.length()));
+        if (renderer.textWidth(value) <= width) {
+            return new Line(value, 0, value.length());
+        }
+
+        int start = safeCursor;
+        while (start > 0 && renderer.textWidth(value.substring(start - 1, safeCursor)) <= width) {
+            start--;
+        }
+        if (start < safeCursor && renderer.textWidth(value.substring(start, safeCursor)) > width) {
+            start++;
+        }
+
+        int end = safeCursor;
+        while (end < value.length() && renderer.textWidth(value.substring(start, end + 1)) <= width) {
+            end++;
+        }
+        if (start == end && end < value.length()) {
+            end++;
+        }
+
+        return new Line(value.substring(start, end), start, end);
+    }
+
+    /**
      * returns the visual line index containing the cursor.
      */
     public static int cursorLine(List<Line> lines, int cursor) {
@@ -101,6 +130,16 @@ public final class TextLayout {
         int lineOffset = Math.max(0, (mouseY - textY) / lineStep(renderer));
         int lineIndex = Math.max(0, Math.min(lines.size() - 1, firstLine + lineOffset));
         Line line = lines.get(lineIndex);
+        return positionInLine(renderer, line, textX, mouseX, value.length());
+    }
+
+    /**
+     * returns the text index nearest a mouse position in a horizontally scrolled single-line field.
+     */
+    public static int singleLinePositionAt(GuiRenderer renderer, String text, int width, int cursor, boolean focused,
+            int textX, int mouseX) {
+        String value = text == null ? "" : text;
+        Line line = focused ? singleLineWindow(renderer, value, width, cursor) : new Line(value, 0, value.length());
         return positionInLine(renderer, line, textX, mouseX, value.length());
     }
 

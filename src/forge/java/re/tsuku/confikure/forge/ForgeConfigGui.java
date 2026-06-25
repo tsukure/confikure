@@ -5,10 +5,12 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import re.tsuku.confikure.gui.ConfigGui;
 import re.tsuku.confikure.gui.ConfigGuiState;
+import re.tsuku.confikure.gui.platform.ClipboardAccess;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.persistence.ConfigStore;
 
@@ -59,6 +61,15 @@ public final class ForgeConfigGui {
             public String name(int keyCode) {
                 String name = Keyboard.getKeyName(keyCode);
                 return name == null ? String.valueOf(keyCode) : name.toLowerCase();
+            }
+        });
+        gui.clipboard(new ClipboardAccess() {
+            public String get() {
+                return GuiScreen.getClipboardString();
+            }
+
+            public void set(String text) {
+                GuiScreen.setClipboardString(text == null ? "" : text);
             }
         });
         if (configurator != null) {

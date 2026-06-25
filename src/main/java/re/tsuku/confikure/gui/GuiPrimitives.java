@@ -87,6 +87,10 @@ public final class GuiPrimitives {
                     textY);
             return;
         }
+        if (focused) {
+            singleLineText(renderer, theme, bounds, text, cursor, selectionStart, selectionEnd, enabled, textX, textY);
+            return;
+        }
         String clipped = clip(text, renderer, bounds.width - 10);
         if (enabled && selectionStart != selectionEnd) {
             int start = Math.max(0, Math.min(Math.min(selectionStart, selectionEnd), clipped.length()));
@@ -102,6 +106,21 @@ public final class GuiPrimitives {
             int cursorX = textX + renderer.textWidth(clipped.substring(0, shownCursor));
             renderer.fill(cursorX, textY - 1, cursorX + 1, textY + renderer.fontHeight(), theme.text);
         }
+    }
+
+    private static void singleLineText(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, String text,
+            int cursor, int selectionStart, int selectionEnd, boolean enabled, int textX, int textY) {
+        String value = text == null ? "" : text;
+        int safeCursor = Math.max(0, Math.min(cursor, value.length()));
+        TextLayout.Line line = TextLayout.singleLineWindow(renderer, value, Math.max(1, bounds.width - 10),
+                safeCursor);
+
+        renderer.pushClip(bounds.x + 1, bounds.y + 1, Math.max(0, bounds.width - 2), Math.max(0, bounds.height - 2));
+        drawSelection(renderer, theme, line, textX, textY, renderer.fontHeight(), selectionStart, selectionEnd,
+                enabled);
+        renderer.text(line.text(), textX, textY, enabled ? theme.text : theme.disabledText);
+        drawCursor(renderer, theme, line, textX, textY, renderer.fontHeight(), safeCursor, true, enabled);
+        renderer.popClip();
     }
 
     private static void multilineText(GuiRenderer renderer, ConfigTheme theme, GuiBounds bounds, String text,

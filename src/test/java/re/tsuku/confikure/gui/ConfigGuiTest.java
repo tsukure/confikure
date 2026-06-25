@@ -9,12 +9,14 @@ import java.util.Map;
 import org.junit.Test;
 import re.tsuku.confikure.ConfigFixtures.ColorAlphaConfig;
 import re.tsuku.confikure.ConfigFixtures.ExampleConfig;
+import re.tsuku.confikure.ConfigFixtures.NumericConfig;
 import re.tsuku.confikure.ConfigFixtures.OffsetRangeConfig;
 import re.tsuku.confikure.Confikure;
 import re.tsuku.confikure.gui.editor.DefaultOptionEditors;
 import re.tsuku.confikure.gui.editor.EditorContext;
 import re.tsuku.confikure.gui.editor.OptionEditor;
 import re.tsuku.confikure.gui.layout.ControlLayout;
+import re.tsuku.confikure.gui.platform.ClipboardAccess;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigDefinition;
 import re.tsuku.confikure.model.ConfigOption;
@@ -174,6 +176,26 @@ public final class ConfigGuiTest {
     }
 
     @Test
+    public void focusedNumberFieldClickUsesVisibleTextWindow() {
+        NumericConfig config = new NumericConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+        TestRenderer renderer = new TestRenderer();
+
+        gui.render(renderer, WIDTH, HEIGHT, 0, 0);
+        clickNumberField(gui, "double-value");
+        gui.keyTyped('\0', 30, false, true);
+        for (char character : "123456789".toCharArray()) {
+            gui.keyTyped(character, 0);
+        }
+        gui.render(renderer, WIDTH, HEIGHT, 0, 0);
+        GuiBounds field = ControlLayout.sliderField(gui.optionBounds(WIDTH, HEIGHT, option(gui, "double-value")));
+        gui.click(WIDTH, HEIGHT, field.x + 5, centerY(field));
+        gui.keyTyped('0', 0);
+
+        assertEquals(1234056789.0D, config.general.doubleValue, 0.0D);
+    }
+
+    @Test
     public void colorDisplayUsesHexText() {
         ExampleConfig config = new ExampleConfig();
         ConfigDefinition definition = Confikure.scan(config);
@@ -302,6 +324,34 @@ public final class ConfigGuiTest {
     }
 
     @Test
+    public void singleLineTextAllowsLongInputAndClipboardPaste() {
+        ExampleConfig config = new ExampleConfig();
+        ConfigGui gui = new ConfigGui(Confikure.scan(config));
+        MemoryClipboard clipboard = new MemoryClipboard();
+        gui.clipboard(clipboard);
+        String longText = repeated('a', 300);
+
+        gui.selectedCategory(1);
+        clickControl(gui, "label");
+        gui.keyTyped('\0', 30, false, true);
+        for (char character : longText.toCharArray()) {
+            gui.keyTyped(character, 0);
+        }
+
+        assertEquals(longText, config.visuals.label);
+
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('\0', 46, false, true);
+        assertEquals(longText, clipboard.text);
+
+        clipboard.text = "hello\nworld";
+        gui.keyTyped('\0', 30, false, true);
+        gui.keyTyped('\0', 47, false, true);
+
+        assertEquals("hello world", config.visuals.label);
+    }
+
+    @Test
     public void keybindClearButtonClearsOrResets() {
         ExampleConfig config = new ExampleConfig();
         ConfigGui gui = new ConfigGui(Confikure.scan(config));
@@ -390,6 +440,14 @@ public final class ConfigGuiTest {
         return () -> false;
     }
 
+    private static String repeated(char character, int count) {
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            builder.append(character);
+        }
+        return builder.toString();
+    }
+
     private static final class RecordingEditor implements OptionEditor {
         private boolean cycleModeControlHovered;
 
@@ -426,6 +484,18 @@ public final class ConfigGuiTest {
         }
 
         public void popClip() {
+        }
+    }
+
+    private static final class MemoryClipboard implements ClipboardAccess {
+        private String text = "";
+
+        public String get() {
+            return text;
+        }
+
+        public void set(String text) {
+            this.text = text;
         }
     }
 }

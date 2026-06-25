@@ -16,6 +16,7 @@ import re.tsuku.confikure.gui.layout.ControlLayout;
 import re.tsuku.confikure.gui.layout.OptionListLayout;
 import re.tsuku.confikure.gui.layout.OptionListLayout.GroupBlock;
 import re.tsuku.confikure.gui.layout.OptionListLayout.OptionRow;
+import re.tsuku.confikure.gui.platform.ClipboardAccess;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 import re.tsuku.confikure.model.ConfigCategory;
 import re.tsuku.confikure.model.ConfigDefinition;
@@ -53,6 +54,7 @@ public final class ConfigGui implements EditorContext {
     private Supplier<ConfigTheme> themeSupplier;
     private GuiRenderer renderer;
     private KeyNameProvider keyNameProvider = DefaultKeyNameProvider.INSTANCE;
+    private ClipboardAccess clipboard = ClipboardAccess.NONE;
     private int selectedCategory;
     private int scroll;
     private ConfigOption focusedOption;
@@ -103,6 +105,19 @@ public final class ConfigGui implements EditorContext {
             throw new NullPointerException("keyNameProvider");
         }
         this.keyNameProvider = keyNameProvider;
+    }
+
+    /**
+     * sets the clipboard bridge used for text keyboard shortcuts.
+     *
+     * @param clipboard
+     *            clipboard bridge
+     */
+    public void clipboard(ClipboardAccess clipboard) {
+        if (clipboard == null) {
+            throw new NullPointerException("clipboard");
+        }
+        this.clipboard = clipboard;
     }
 
     /**
@@ -1138,7 +1153,7 @@ public final class ConfigGui implements EditorContext {
         String text = String.valueOf(option.get());
         int viewCursor = wasFocused ? state.cursor() : 0;
         state.text(text);
-        state.maxLength(option.type() == EditorType.MULTILINE_TEXT ? 2048 : 256);
+        state.maxLength(option.type() == EditorType.TEXT || option.type() == EditorType.MULTILINE_TEXT ? 2048 : 256);
         state.filter(TextInputState.CharacterFilter.ANY);
         if (renderer != null) {
             GuiBounds control = ControlLayout.text(bounds, option.type() == EditorType.MULTILINE_TEXT);
@@ -1147,7 +1162,8 @@ public final class ConfigGui implements EditorContext {
                         control.height, mouseX, mouseY, wasFocused, viewCursor);
                 return;
             }
-            state.cursorAt(renderer, firstLine(text), control.x + 5, mouseX);
+            state.cursorAtWindow(renderer, control.x + 5, Math.max(1, control.width - 10), mouseX, wasFocused,
+                    viewCursor);
         }
     }
 
@@ -1168,7 +1184,7 @@ public final class ConfigGui implements EditorContext {
         }
         GuiBounds field = ControlLayout.sliderField(row);
         TextInputState state = textState(option);
-        state.cursorAt(renderer, state.text(), field.x + 5, mouseX);
+        state.cursorAtWindow(renderer, field.x + 5, Math.max(1, field.width - 10), mouseX, true, state.cursor());
     }
 
     void focusColor(ConfigOption option, GuiBounds hex, int mouseX) {
@@ -1216,12 +1232,12 @@ public final class ConfigGui implements EditorContext {
         if (option.type() == EditorType.TEXT) {
             GuiBounds row = optionBounds(panel, option);
             GuiBounds control = ControlLayout.text(row, false);
-            state.selectAt(renderer, firstLine(state.text()), control.x + 5, mouseX);
+            state.selectAtWindow(renderer, control.x + 5, Math.max(1, control.width - 10), mouseX, true);
             return;
         }
         if (option.type() == EditorType.NUMBER) {
             GuiBounds field = ControlLayout.sliderField(optionBounds(panel, option));
-            state.selectAt(renderer, state.text(), field.x + 5, mouseX);
+            state.selectAtWindow(renderer, field.x + 5, Math.max(1, field.width - 10), mouseX, true);
             return;
         }
         if (option.type() == EditorType.COLOR && colorPicker.isOpen(option)) {
@@ -1233,7 +1249,7 @@ public final class ConfigGui implements EditorContext {
     private KeyResult editText(ConfigOption option, char typedChar, int keyCode, boolean shift, boolean control) {
         TextInputState state = textState(option);
         KeyResult result = state.keyTyped(typedChar, keyCode, shift, control,
-                option.type() == EditorType.MULTILINE_TEXT);
+                option.type() == EditorType.MULTILINE_TEXT, clipboard);
         if (result == KeyResult.CHANGED) {
             option.set(state.text());
         } else if (result == KeyResult.COMMIT) {
@@ -1248,7 +1264,7 @@ public final class ConfigGui implements EditorContext {
 
     private void editNumber(ConfigOption option, char typedChar, int keyCode, boolean shift, boolean control) {
         TextInputState state = textState(option);
-        KeyResult result = state.keyTyped(typedChar, keyCode, shift, control, false);
+        KeyResult result = state.keyTyped(typedChar, keyCode, shift, control, false, clipboard);
         if (result == KeyResult.CHANGED) {
             parseNumber(option, state.text());
         } else if (result == KeyResult.COMMIT) {
@@ -1263,7 +1279,7 @@ public final class ConfigGui implements EditorContext {
 
     private void editColor(ConfigOption option, char typedChar, int keyCode, boolean shift, boolean control) {
         TextInputState state = textState(option);
-        KeyResult result = state.keyTyped(Character.toUpperCase(typedChar), keyCode, shift, control, false);
+        KeyResult result = state.keyTyped(Character.toUpperCase(typedChar), keyCode, shift, control, false, clipboard);
         if (result == KeyResult.CHANGED) {
             ColorPickerPopup.parse(option, state.text());
         } else if (result == KeyResult.COMMIT) {
@@ -1296,11 +1312,6 @@ public final class ConfigGui implements EditorContext {
             int selectionEnd, boolean hovered, boolean focused) {
         GuiPrimitives.textField(renderer, theme, bounds, text, cursor, selectionStart, selectionEnd, hovered, focused,
                 true, false);
-    }
-
-    private static String firstLine(String text) {
-        int index = text.indexOf('\n');
-        return index < 0 ? text : text.substring(0, index);
     }
 
     private TextInputState textState(ConfigOption option) {

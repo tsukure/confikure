@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import re.tsuku.confikure.gui.input.TextInputState.KeyResult;
+import re.tsuku.confikure.gui.platform.ClipboardAccess;
 import re.tsuku.confikure.gui.platform.GuiRenderer;
 
 public final class TextInputStateTest {
@@ -107,6 +108,83 @@ public final class TextInputStateTest {
     }
 
     @Test
+    public void copyCutAndPasteUseSelection() {
+        TextInputState state = new TextInputState();
+        MemoryClipboard clipboard = new MemoryClipboard();
+        state.text("hello");
+
+        assertEquals(KeyResult.USED, state.keyTyped('\0', 30, false, true, false, clipboard));
+        assertEquals(KeyResult.USED, state.keyTyped('\0', 46, false, true, false, clipboard));
+        assertEquals("hello", clipboard.text);
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 45, false, true, false, clipboard));
+        assertEquals("", state.text());
+
+        clipboard.text = "world";
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 47, false, true, false, clipboard));
+        assertEquals("world", state.text());
+    }
+
+    @Test
+    public void pasteFiltersNewlinesForSingleLineInputs() {
+        TextInputState state = new TextInputState();
+        MemoryClipboard clipboard = new MemoryClipboard();
+        clipboard.text = "hello\nworld";
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 47, false, true, false, clipboard));
+
+        assertEquals("hello world", state.text());
+    }
+
+    @Test
+    public void pastePreservesNewlinesForMultilineInputs() {
+        TextInputState state = new TextInputState();
+        MemoryClipboard clipboard = new MemoryClipboard();
+        clipboard.text = "hello\nworld";
+
+        assertEquals(KeyResult.CHANGED, state.keyTyped('\0', 47, false, true, true, clipboard));
+
+        assertEquals("hello\nworld", state.text());
+    }
+
+    @Test
+    public void pasteTreatsCarriageReturnsAsNewlines() {
+        TextInputState singleLine = new TextInputState();
+        TextInputState multiline = new TextInputState();
+        MemoryClipboard clipboard = new MemoryClipboard();
+        clipboard.text = "hello\rworld";
+
+        assertEquals(KeyResult.CHANGED, singleLine.keyTyped('\0', 47, false, true, false, clipboard));
+        assertEquals(KeyResult.CHANGED, multiline.keyTyped('\0', 47, false, true, true, clipboard));
+
+        assertEquals("hello world", singleLine.text());
+        assertEquals("hello\nworld", multiline.text());
+    }
+
+    @Test
+    public void cursorAtWindowUsesVisibleSingleLineWindow() {
+        TextInputState state = new TextInputState();
+        state.text("abcdef");
+
+        state.cursorAtWindow(new TestRenderer(), 0, 18, 0, true, state.cursor());
+
+        assertEquals(3, state.cursor());
+    }
+
+    @Test
+    public void selectAtWindowUsesSelectionAnchorAsVisibleWindow() {
+        TextInputState state = new TextInputState();
+        state.text("abcdef");
+        state.cursorAtWindow(new TestRenderer(), 0, 18, 0, true, state.cursor());
+        state.keyTyped('\0', 205, true, false, false);
+
+        state.selectAtWindow(new TestRenderer(), 0, 18, 0, true);
+
+        assertEquals(0, state.selectionStart());
+        assertEquals(3, state.selectionEnd());
+    }
+
+    @Test
     public void cursorAtWrappedUsesMouseYForExplicitLines() {
         TextInputState state = new TextInputState();
         state.text("abc\ndef");
@@ -172,6 +250,18 @@ public final class TextInputStateTest {
         }
 
         public void popClip() {
+        }
+    }
+
+    private static final class MemoryClipboard implements ClipboardAccess {
+        private String text = "";
+
+        public String get() {
+            return text;
+        }
+
+        public void set(String text) {
+            this.text = text;
         }
     }
 }

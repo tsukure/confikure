@@ -33,6 +33,17 @@ public final class GuiPrimitivesTest {
         assertEquals("beta", renderer.text.get(1));
     }
 
+    @Test
+    public void focusedSingleLineTextFieldScrollsToCursor() {
+        TestRenderer renderer = new TestRenderer();
+
+        GuiPrimitives.textField(renderer, new ConfigTheme(), new GuiBounds(0, 0, 28, 18), "abcdef", 6, 6, 6, false,
+                true, true, false);
+
+        assertEquals(1, renderer.text.size());
+        assertEquals("def", renderer.text.get(0));
+    }
+
     private static final class TestRenderer implements GuiRenderer {
         private final List<String> text = new ArrayList<String>();
 
